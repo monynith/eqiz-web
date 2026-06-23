@@ -1,0 +1,7 @@
+{
+  "name": "eqiz",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
