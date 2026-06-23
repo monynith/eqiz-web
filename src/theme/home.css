@@ -1,0 +1,37 @@
+#indicator-wrapper {
+    margin-top: 50px;
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+}
+
+.indicator {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    border: 1px dotted #bababa;
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.indicator p {
+    margin: 0px;
+}
+
+.indicator .key {
+    color: #585858;
+    font-size: 0.8rem;
+}
+
+.indicator .value {
+    margin-top: 5px;
+    font-size: 0.9rem;
+}
+
+.indicator .value span {
+    font-weight: bold;
+    font-size: 1.35rem;
+}

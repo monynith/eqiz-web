@@ -1,21 +1,24 @@
 <template>
   <ion-page>
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-title>Blank</ion-title>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content :fullscreen="true">
-      <ion-header collapse="condense">
-        <ion-toolbar>
-          <ion-title size="large">Blank</ion-title>
-        </ion-toolbar>
-      </ion-header>
-
-      <div id="container">
-        <strong>Ready to create an app?</strong>
-        <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+      <div class="container">
+        <NavBar action="home" /> 
+        <MainContent title="Dashboard">
+          <div id="indicator-wrapper">
+            <div class="indicator">
+              <p class="key">Today App Sale (#)</p>
+              <p class="value"><span>168</span></p>
+            </div>
+            <div class="indicator">
+              <p class="key">Today Revenue ($)</p>
+              <p class="value">USD <span>168</span></p>
+            </div>
+            <div class="indicator">
+              <p class="key">App Store vs Play Store</p>
+              <p class="value">USD <span>168</span> / USD <span>100</span></p>
+            </div>
+          </div>          
+        </MainContent>
       </div>
     </ion-content>
   </ion-page>
@@ -23,34 +26,10 @@
 
 <script setup lang="ts">
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/vue';
+import NavBar from './components/NavBar.vue';
+import MainContent from './components/Content.vue';
 </script>
 
 <style scoped>
-#container {
-  text-align: center;
-  
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
-}
-
-#container p {
-  font-size: 16px;
-  line-height: 22px;
-  
-  color: #8c8c8c;
-  
-  margin: 0;
-}
-
-#container a {
-  text-decoration: none;
-}
+@import url(../theme/home.css);
 </style>
