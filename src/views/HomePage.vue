@@ -1,23 +1,12 @@
 <template>
   <ion-page>
-    <ion-content :fullscreen="true">
+    <ion-content>
       <div class="container">
-        <NavBar action="home" /> 
-        <MainContent title="Dashboard">
-          <div id="indicator-wrapper">
-            <div class="indicator">
-              <p class="key">Today App Sale (#)</p>
-              <p class="value"><span>168</span></p>
-            </div>
-            <div class="indicator">
-              <p class="key">Today Revenue ($)</p>
-              <p class="value">USD <span>168</span></p>
-            </div>
-            <div class="indicator">
-              <p class="key">App Store vs Play Store</p>
-              <p class="value">USD <span>168</span> / USD <span>100</span></p>
-            </div>
-          </div>          
+        <NavBar :action="action" /> 
+        <MainContent :title="title[action]">
+            <Home v-if="action == 'home'" />     
+            <App v-if="action == 'apps'" /> 
+            <Order v-if="action == 'orders'" /> 
         </MainContent>
       </div>
     </ion-content>
@@ -28,8 +17,24 @@
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/vue';
 import NavBar from './components/NavBar.vue';
 import MainContent from './components/Content.vue';
+import Home from './components/Home.vue';
+import App from './components/App.vue';
+import Order from './components/Order.vue';
+
+let action = 'home';
+const title: Record<string, string> = { 
+  'home': "Dashboard",
+  'orders': "Orders",
+  'apps': "App Lists",
+  'content': "Content Management",
+  'reports': "Reports"
+}
+
+// check path
+const path = window.location.pathname.slice(1);;
+action = path;
+
 </script>
 
 <style scoped>
-@import url(../theme/home.css);
 </style>

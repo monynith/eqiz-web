@@ -1,37 +1,108 @@
 #indicator-wrapper {
-    margin-top: 50px;
-    display: flex;
-    flex-direction: row;
-    gap: 15px;
+  margin-top: 30px;
+  display: flex;
+  flex-direction: row;
+  gap: 15px;
 }
 
 .indicator {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-    border: 1px dotted #bababa;
-    padding: 10px;
-    border-radius: 10px;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 24px;
+  text-align: center;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.indicator:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 20px 35px -5px rgba(0, 0, 0, 0.08),
+    0 12px 24px -8px rgba(0, 0, 0, 0.05);
 }
 
 .indicator p {
-    margin: 0px;
+  margin: 0px;
 }
 
 .indicator .key {
-    color: #585858;
-    font-size: 0.8rem;
+  color: #787878;
+  font-size: 0.7rem;
+  text-transform: uppercase;
 }
 
 .indicator .value {
-    margin-top: 5px;
-    font-size: 0.9rem;
+  margin-top: 5px;
+  font-size: 1rem;
 }
 
 .indicator .value span {
+  font-weight: bold;
+  font-size: 1.35rem;
+}
+
+#line-chart {
+  margin-top: 30px;
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#data-wrapper {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: row; 
+  justify-content: space-between; 
+  width: 100%;
+}
+
+#data-wrapper #label {
     font-weight: bold;
-    font-size: 1.35rem;
+    font-size: 1.1rem;
+    margin: 0px;
+}
+
+#data-wrapper #label span {
+    font-weight: normal;
+    font-size: 0.9rem;
+    color: #585858;
+}
+
+#data-wrapper #amount {
+    font-weight: normal;
+    font-size: 1rem;
+    margin-top: 5px;
+    color: #585858;
+    margin-bottom: 0px;
+}
+
+#data-wrapper #amount span {
+    font-weight: bold;
+    font-size: 1.4rem;
+    color: black;
+}
+
+#filter {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: #585858;
+}
+
+#filter ion-icon {
+    margin-left: 5px;
+    margin-top: -1px;
+    color: #777777;
 }
