@@ -26,12 +26,19 @@
     font-size: 1.3rem;
 }
 
+#img-pick img {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+}
+
 #img-label {
     margin: 0px;
     padding: 0px;
     margin-top: 5px;
     font-size: 0.8rem;
-    margin-left: 5px;
+    width: 60px;
+    text-align: center;
     color: rgb(232, 134, 150);
     cursor: pointer;
 }

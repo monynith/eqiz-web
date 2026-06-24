@@ -95,3 +95,14 @@ ion-modal {
   --border-radius: 30px 30px 0px 0px;
   --height: auto;
 }
+
+.spinner-wrapper {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.spinner-wrapper ion-spinner {
+  width: 20px;  
+  margin-right: 10px;
+}
