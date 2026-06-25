@@ -1,7 +1,9 @@
 <template>
     <Skeleton v-if="loading == true"/>
     <div v-if="loading == false">
-        <p id="create-btn" @click="createApp">Create New App</p>
+        <div id="create-btn-wrapper">
+            <p id="create-btn" @click="createApp">Create New App</p>
+        </div>        
         <div class="table-container">
             <table class="order-table">
                 <thead>
@@ -14,9 +16,9 @@
                     </tr>
                 </thead>
                 <tbody class="t-body">
-                    <tr v-for="app in apps">
+                    <tr v-for="app in apps" @click="editApp(app)">
                         <td class="date-cell">
-                            <span class="main-text">{{ app['id'] }}</span>
+                            <span class="main-text">{{ app['app_id'] }}</span>
                         </td>
                         <td class="app-logo">
                             <img :src="app['logo']" />
@@ -62,6 +64,27 @@ const createApp = async () => {
     }
 }
 
+const editApp = async (app: any) => {
+    const modal = await modalController.create({
+        component: Modal,
+        initialBreakpoint: 1,
+        breakpoints: [0, 1],
+        mode: "md",
+        componentProps: {
+            app,
+            isEdit: true
+        }
+    });
+
+    modal.present();
+
+    const { data } = await modal.onWillDismiss();
+    if(data.dismissed == true){
+        loading.value = true;
+        init();
+    }
+}
+
 const init = async () => {
     const dbUrl = import.meta.env.VITE_DB_URL;
     const dbToken = import.meta.env.VITE_DB_TOKEN;
@@ -71,10 +94,9 @@ const init = async () => {
         authToken: dbToken,
     });
     const result = await client.execute({
-        sql: "SELECT * FROM apps"
+        sql: "SELECT * FROM apps where status = 'active' ORDER BY name LIMIT 100"
     });
 
-    console.log(result.rows);
     loading.value = false;
     (apps.value as any) = result.rows;
 }

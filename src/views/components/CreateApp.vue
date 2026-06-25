@@ -3,7 +3,7 @@
         @change="onFileSelected">
     <div class="block">
         <div id="container" @touchmove.stop>
-            <p id="title">Create New App</p>
+            <p id="title">{{ isEdit ? 'Edit App' : 'Create New App' }}</p>
             <div id="img-pick" @click="triggerImagePicker">
                 <ion-icon :icon="addOutline"></ion-icon>
                 <img :src="logo" v-if="logo != ''" />
@@ -31,7 +31,11 @@
                     </ion-input>
                 </ion-item>
             </ion-list>
-            <div class="text-right button-wrapper">
+            <div class="text-right button-wrapper" v-if="isEdit == true">
+                <p id="button" @click="create">{{ loading == true ? 'Editing...' : 'Edit' }}</p>
+                <ion-icon :icon="arrowForward" @click="create" v-if="!loading"></ion-icon>
+            </div>
+            <div class="text-right button-wrapper" v-if="!isEdit">
                 <p id="button" @click="create">{{ loading == true ? 'Creating...' : 'Create Now' }}</p>
                 <ion-icon :icon="arrowForward" @click="create" v-if="!loading"></ion-icon>
             </div>
@@ -60,6 +64,18 @@ const appName = ref();
 const price = ref();
 const loading = ref(false);
 
+const props = defineProps({
+  app: Object,
+  isEdit: Boolean
+})
+
+if(props.app && props.app['id']){
+    appID.value = props.app['app_id'];
+    eqizID.value = props.app['eqiz_id'];
+    appName.value = props.app['name'];
+    price.value = props.app['price'];
+    logo.value = props.app['logo'];
+}
 
 const onFileSelected = (event: any) => {
     const file = event.target.files[0];
@@ -111,24 +127,48 @@ const create = async ()=> {
     });  
     loading.value = true;
     try {
-        await turso.execute({
-            sql: `
-                INSERT INTO apps 
-                VALUES('${appID.value}', '${eqizID.value}', '${appName.value}', '${price.value}', 'active', '${logo.value}')
-            `
-        });
-        await modalController.dismiss({
-            dismissed: true,
-        });
-        const toast = await toastController.create({
-            message: 'Successfully created.',
-            duration: 2000,
-            position: 'bottom',
-            color: "secondary"
-        });
+        if(props.isEdit == true) {
+            await turso.execute({
+                sql: `
+                    UPDATE apps 
+                    SET app_id='${appID.value}', eqiz_id='${eqizID.value}', name='${appName.value}', price='${price.value}', logo='${logo.value}'
+                    where id='${props.app ? props.app['id'] : ''}'
+                `
+            });
+            await modalController.dismiss({
+                dismissed: true,
+            });
+            const toast = await toastController.create({
+                message: 'Successfully editted.',
+                duration: 2000,
+                position: 'bottom',
+                color: "secondary"
+            });
 
-        await toast.present();
+            await toast.present();
+        } else {
+            console.log(`INSERT INTO apps 
+                    VALUES('${appID.value}', '${eqizID.value}', '${appName.value}', '${price.value}', 'active', '${logo.value}, '${appID.value}')`)
+            await turso.execute({
+                sql: `
+                    INSERT INTO apps 
+                    VALUES('${appID.value}', '${eqizID.value}', '${appName.value}', '${price.value}', 'active', '${logo.value}', '${appID.value}')
+                `
+            });
+            await modalController.dismiss({
+                dismissed: true,
+            });
+            const toast = await toastController.create({
+                message: 'Successfully created.',
+                duration: 2000,
+                position: 'bottom',
+                color: "secondary"
+            });
+
+            await toast.present();
+        }        
     } catch(e){
+        console.log(e);
         loading.value = false;
         const toast = await toastController.create({
             message: 'Something went wrong.',

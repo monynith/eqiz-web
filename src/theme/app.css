@@ -2,8 +2,7 @@
     width: 100%;
     overflow-x: auto;
     background: #ffffff;
-    border-top: 1px solid #e0e0e0;
-    border-bottom: 1px solid #e0e0e0;      
+    border: 1px solid #f3f3f3;     
 }
 
 .order-table {
@@ -18,7 +17,7 @@
     color: black;
     padding: 14px 16px;
     border-bottom: 1px solid #e5e7eb;
-    background-color: #ffffff;
+    background-color: #f7f7f7;
 }
 
 .order-table th:first {
@@ -84,8 +83,13 @@
     border-bottom: none;
 }
 
+#create-btn-wrapper {
+    display: flex;
+    justify-content: flex-end;
+}
+
 #create-btn {
-    text-align: right;
+    width: fit-content;
     margin-top: 50px;  
     margin-bottom: 20px;
     color: palevioletred;
