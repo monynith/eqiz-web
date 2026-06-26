@@ -37,7 +37,7 @@
 </template>
 
 <script setup lang="ts">
-import { IonIcon, modalController, IonSpinner } from '@ionic/vue';
+import { IonIcon, modalController } from '@ionic/vue';
 import { arrowForwardOutline } from 'ionicons/icons';
 import Modal from '../components/CreateApp.vue';
 import { createClient } from '@libsql/client';

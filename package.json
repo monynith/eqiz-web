@@ -21,6 +21,7 @@
     "@ionic/vue-router": "^8.0.0",
     "@libsql/client": "^0.17.4",
     "chart.js": "^4.5.1",
+    "country-iso-3-to-2": "^1.1.1",
     "ionicons": "^7.0.0",
     "vue": "^3.3.0",
     "vue-chartjs": "^5.3.3",
