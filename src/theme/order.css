@@ -96,6 +96,7 @@
     color: palevioletred;
     font-weight: bold;
     font-size: 0.9rem;
+    cursor: pointer;
 }
 
 #total-wrapper {

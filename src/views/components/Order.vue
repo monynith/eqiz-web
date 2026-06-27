@@ -1,7 +1,7 @@
 <template>
     <Skeleton v-if="loading == true"/>
     <div v-if="loading == false">
-        <ion-datetime-button datetime="datetime" style="opacity: 0;height: 0px;"></ion-datetime-button>
+        <ion-datetime-button datetime="datetime" style="display: none;"></ion-datetime-button>
 
         <ion-modal ref="monthModal" :keep-contents-mounted="true">
             <ion-datetime id="datetime" presentation="month-year" :show-default-buttons="true" mode="md" @ion-change="changeMonth"></ion-datetime>
@@ -14,7 +14,7 @@
                     <span>{{monthYear}}</span> <ion-icon :icon="chevronDownOutline"></ion-icon> 
                 </div>
             </div>            
-            <p id="create-btn">Add Order</p>
+            <p id="create-btn" @click="addOrder">Add Order</p>
         </div>        
         <div class="table-container">
             <table class="order-table">
@@ -25,12 +25,12 @@
                     <th>Name</th>                
                     <th>Store</th>
                     <th>Country</th>
-                    <th class="text-right">Price</th>                    
+                    <th class="text-right">Amount</th>                    
                     <th></th>
                 </tr>
             </thead>
             <tbody class="t-body">
-                <tr  v-for="order in orders">
+                <tr v-for="order in orders" @click="editOrder(order)">
                     <td class="date-cell">
                         <span class="main-text">{{ order['date'] }}</span>
                     </td>
@@ -52,12 +52,13 @@
 </template>
 
 <script setup lang="ts">
-import { IonIcon, IonDatetimeButton, IonDatetime, IonModal } from '@ionic/vue';
+import { IonIcon, IonDatetimeButton, IonDatetime, IonModal, modalController } from '@ionic/vue';
 import { createClient } from '@libsql/client';
 import { arrowForwardOutline, chevronDownOutline } from 'ionicons/icons';
 import Skeleton from './Skeleton.vue';
 import { ref } from 'vue';
 import getCountryISO2 from 'country-iso-3-to-2';
+import Modal from '../components/CreateOrder.vue';
 
 const loading = ref(true);
 const orders = ref([]);
@@ -68,7 +69,6 @@ const monthYear = ref("");
 
 const changeMonth = (event: any)=> {    
     loading.value = true;
-    console.log(event);
     // new Date(event.detail.value) and new Date()
     // console.log(checkSameMonthAndYear(event.detail.value));
     if(!event.detail.value) {
@@ -76,6 +76,48 @@ const changeMonth = (event: any)=> {
     } else {
         getOrders(new Date(event.detail.value))
     }    
+}
+
+const addOrder = async ()=> {
+    const modal = await modalController.create({
+        component: Modal,
+        initialBreakpoint: 1,
+        breakpoints: [0, 1],
+        mode: "md",
+        componentProps: {
+            apps: apps.value
+        }
+    });
+
+    modal.present();
+
+    const { data } = await modal.onWillDismiss();
+    if(data && data.dismissed == true){
+        loading.value = true;
+        getOrders(new Date());
+    }
+}
+
+const editOrder = async (order: any)=> {
+    const modal = await modalController.create({
+        component: Modal,
+        initialBreakpoint: 1,
+        breakpoints: [0, 1],
+        mode: "md",
+        componentProps: {
+            order,
+            isEdit: true,
+            apps: apps.value
+        }
+    });
+
+    modal.present();
+
+    const { data } = await modal.onWillDismiss();
+    if(data.dismissed == true){
+        loading.value = true;
+        getOrders(new Date());
+    }
 }
 
 const getLogo = (appId: string)=> {    
@@ -102,7 +144,7 @@ const getOrders = async (date: any) => {
 
     // get current month
     // const now = new Date();
-    console.log(date);
+    // console.log(date);
     const month = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
     const year = date.getFullYear();
 

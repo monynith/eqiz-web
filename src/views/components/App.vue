@@ -58,7 +58,7 @@ const createApp = async () => {
     modal.present();
 
     const { data } = await modal.onWillDismiss();
-    if(data.dismissed == true){
+    if(data && data.dismissed == true){
         loading.value = true;
         init();
     }

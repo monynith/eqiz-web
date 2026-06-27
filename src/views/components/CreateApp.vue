@@ -147,8 +147,6 @@ const create = async ()=> {
 
             await toast.present();
         } else {
-            console.log(`INSERT INTO apps 
-                    VALUES('${appID.value}', '${eqizID.value}', '${appName.value}', '${price.value}', 'active', '${logo.value}, '${appID.value}')`)
             await turso.execute({
                 sql: `
                     INSERT INTO apps 

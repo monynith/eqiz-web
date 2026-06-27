@@ -1,0 +1,134 @@
+#container {
+    padding: 20px 30px;
+    width: 100%;
+}
+
+#title {
+    font-weight: bold;
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+#img-pick {
+    width: 60px;
+    height: 60px;
+    background-color: rgb(255, 236, 239);
+    /* border: 1px dashed rgb(244, 146, 179); */
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: rgb(232, 134, 150);
+    cursor: pointer;
+}
+
+#img-pick ion-icon {
+    font-size: 1.3rem;
+}
+
+#img-pick img {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+}
+
+#img-label {
+    margin: 0px;
+    padding: 0px;
+    margin-top: 5px;
+    font-size: 0.8rem;
+    width: 60px;
+    text-align: center;
+    color: rgb(232, 134, 150);
+    cursor: pointer;
+}
+
+#input-list {
+    margin-top: 0px;
+}
+
+#input-list ion-item {
+    --padding-start: 0px;
+    margin-bottom: 0px;
+}
+
+.my-custom-label {
+  font-size: 1.1rem !important;  
+  margin-bottom: 25px;
+  color: #585858;
+}
+
+#input-list ion-input {
+  font-size: 1rem;
+  --padding-bottom: 10px;
+}
+
+.block {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.block, #container {
+  height: auto !important;
+  min-height: unset !important;
+  max-height: 95vh;
+  overflow-y: auto; 
+  scrollbar-width: none; /* Hides scrollbar for Firefox */
+  -ms-overflow-style: none;
+}
+
+.button-wrapper #button {
+    color: palevioletred;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.button-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: 30px;
+    cursor: pointer;
+}
+
+.button-wrapper ion-icon {
+    color: palevioletred;
+    margin-left: 5px;
+    margin-top: 2px;
+    font-size: 1rem;
+}
+
+ion-select.store-select::part(label) {  
+  font-size: 1.1rem;
+  color: #585858;  
+  margin-top: 12px;
+}
+
+ion-select.store-select::part(container) {  
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+
+ion-select.store-select::part(icon) {  
+  margin-top: 5px;
+}
+
+#chip-wrapper {
+    margin-top: 5px;    
+    /* display: flex;
+    flex-direction: row; */
+}
+
+#chip-wrapper ion-chip {
+    margin-inline-start: 0px;
+    font-size: 0.7rem;
+    padding: 8px;
+    min-height: 24px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    border-radius: 10px;
+    width: fit-content;
+}
