@@ -4,7 +4,7 @@
         <ion-datetime-button datetime="datetime" style="display: none;"></ion-datetime-button>
 
         <ion-modal ref="monthModal" :keep-contents-mounted="true">
-            <ion-datetime id="datetime" presentation="month-year" :show-default-buttons="true" mode="md" @ion-change="changeMonth"></ion-datetime>
+            <ion-datetime id="datetime" presentation="month-year" :show-default-buttons="true" mode="ios" @ion-change="changeMonth"></ion-datetime>
         </ion-modal>
 
         <div class="header-wrapper">

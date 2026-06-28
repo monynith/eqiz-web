@@ -106,3 +106,48 @@ ion-modal {
   width: 20px;  
   margin-right: 10px;
 }
+
+.nav-phone {
+  display: none;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.nav-phone #logo {
+  display: flex;
+  align-items: center;  
+}
+
+.nav-phone #logo img {
+  width: 40px;
+  border-radius: 20px;
+  margin-right: 15px;
+}
+
+.nav-phone #logo span {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.nav-phone ion-icon {
+  font-size: 1.5rem;
+  color: #585858;
+  cursor: pointer;
+}
+
+@media screen and (max-width: 600px) {
+  .nav {
+    display: none;
+  }
+  .nav-phone {
+    display: flex;
+  }
+  .container {
+    padding: 15px;
+    flex-direction: column;
+  }
+  .content {
+    padding: 15px;
+  }
+}

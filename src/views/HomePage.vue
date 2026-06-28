@@ -1,8 +1,9 @@
 <template>
   <ion-page>
-    <ion-content>
-      <div class="container">
+    <ion-content>      
+      <div class="container">        
         <NavBar :action="action" /> 
+        <NavBarPhone />
         <MainContent :title="title[action]">
             <Home v-if="action == 'home'" />     
             <App v-if="action == 'apps'" /> 
@@ -20,6 +21,7 @@ import MainContent from './components/Content.vue';
 import Home from './components/Home.vue';
 import App from './components/App.vue';
 import Order from './components/Order.vue';
+import NavBarPhone from './components/NavBarPhone.vue';
 
 let action = 'home';
 const title: Record<string, string> = { 
