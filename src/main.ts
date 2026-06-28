@@ -40,5 +40,31 @@ const app = createApp(App)
   .use(router);
 
 router.isReady().then(() => {
-  app.mount('#app');
+  checkIpAccess(app);  
 });
+
+const checkIpAccess = async (app: any)=> {
+  try {
+    const WHITELIST = import.meta.env.VITE_WHITELIST_IP;
+    // 1. Make the fetch request
+    const response = await fetch('https://api.ipify.org?format=json');
+    
+    // 2. Check if the network response was successful (status 200-299)
+    if (!response.ok) {
+      throw new Error(`Network response was not ok: ${response.status}`);
+    }
+
+    // 3. Parse the JSON data
+    const data = await response.json();
+    const userIp = data.ip;
+    app.mount('#app');
+    // 4. Validate against the whitelist
+    if (!WHITELIST.includes(userIp)) {
+      // Redirect to an unauthorized view
+      router.push('/access-denied');
+      return;
+    }    
+  } catch (error) {
+    console.error("Failed to verify IP address", error);
+  }
+}
