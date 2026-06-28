@@ -44,6 +44,7 @@ router.isReady().then(() => {
 });
 
 const checkIpAccess = async (app: any)=> {
+  app.mount('#app');
   try {
     const WHITELIST = import.meta.env.VITE_WHITELIST_IP;
     // 1. Make the fetch request
@@ -56,14 +57,13 @@ const checkIpAccess = async (app: any)=> {
 
     // 3. Parse the JSON data
     const data = await response.json();
-    const userIp = data.ip;
-    app.mount('#app');
+    const userIp = data.ip;    
     // 4. Validate against the whitelist
     if (!WHITELIST.includes(userIp)) {
-      // Redirect to an unauthorized view
-      router.push('/access-denied');
+      // Redirect to an unauthorized view      
+      router.push('/access-denied');      
       return;
-    }    
+    }        
   } catch (error) {
     console.error("Failed to verify IP address", error);
   }

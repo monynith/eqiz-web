@@ -27,7 +27,7 @@
                 processed</p>
         </div>
         <div id="filter" v-if="loadingPerfomance == false" @click="filterPerformance">
-            <span>{{ getFilterPerformanceLabel() }}</span> <ion-icon :icon="chevronDownOutline"></ion-icon>
+            <span>{{ getFilterPerformanceLabel()['label'] }}<b style="color: black;">{{ getFilterPerformanceLabel()['value'] }}</b></span> <ion-icon :icon="chevronDownOutline"></ion-icon>
         </div>
     </div>
     <Skeleton v-if="loadingPerfomance == true" />
@@ -298,7 +298,7 @@ const getLastMonth = async () => {
     });
 
     const lastMonth = formatter.format(lastMonthDate);
-    const year = new Date().getFullYear();
+    const year = lastMonthDate.getFullYear();
     const result = await client.execute({
         sql: `
             SELECT 
@@ -428,27 +428,30 @@ const get3Month = async () => {
                 ) AS iso_date
             FROM orders
             WHERE status = 'active'
-              AND date IN ('${allDatesIn3Months.join("', '")}')
+            AND date IN ('${allDatesIn3Months.join("', '")}')
         ),
         weekly_bounds AS (
             SELECT 
                 pricing,
                 id,
-                strftime('%W', iso_date) AS week_number,
-                -- Monday of that week
+                -- FIX 1: Group by Year AND Week together (e.g., '2025-52') to keep weeks separated by year
+                strftime('%Y-%W', iso_date) AS year_week,
                 date(iso_date, 'weekday 0', '-6 days') AS w_start, 
-                -- Sunday of that week
                 date(iso_date, 'weekday 0') AS w_end              
             FROM converted_orders
         )
         SELECT             
-            -- Construct the custom string range: "Month Day - Month Day, Year"
+            -- FIX 2: Check if years match. If they don't, append the year to BOTH start and end labels.
             CASE strftime('%m', w_start)
                 WHEN '01' THEN 'January' WHEN '02' THEN 'February' WHEN '03' THEN 'March'
                 WHEN '04' THEN 'April'   WHEN '05' THEN 'May'      WHEN '06' THEN 'June'
                 WHEN '07' THEN 'July'    WHEN '08' THEN 'August'   WHEN '09' THEN 'September'
                 WHEN '10' THEN 'October' WHEN '11' THEN 'November' WHEN '12' THEN 'December'
-            END || ' ' || cast(strftime('%d', w_start) as integer) || ' - ' ||
+            END || ' ' || cast(strftime('%d', w_start) as integer) || 
+            CASE 
+                WHEN strftime('%Y', w_start) <> strftime('%Y', w_end) THEN ', ' || strftime('%Y', w_start)
+                ELSE ''
+            END || ' - ' ||
             CASE strftime('%m', w_end)
                 WHEN '01' THEN 'January' WHEN '02' THEN 'February' WHEN '03' THEN 'March'
                 WHEN '04' THEN 'April'   WHEN '05' THEN 'May'      WHEN '06' THEN 'June'
@@ -460,8 +463,8 @@ const get3Month = async () => {
             SUM(SUM(pricing)) OVER() AS grand_total,
             SUM(COUNT(id)) OVER() AS total_app_sale
         FROM weekly_bounds
-        GROUP BY week_number
-        ORDER BY week_number ASC;
+        GROUP BY year_week
+        ORDER BY year_week ASC; -- Correct chronological ordering across years
     `
     });
 
@@ -485,12 +488,121 @@ const get3Month = async () => {
     loadingPerfomance.value = false;
 }
 
+const get3MonthByMonthly = async () => {
+    const dbUrl = import.meta.env.VITE_DB_URL;
+    const dbToken = import.meta.env.VITE_DB_TOKEN;
+
+    const client = createClient({
+        url: dbUrl,
+        authToken: dbToken,
+    });
+
+    const now = new Date();
+    const currentYear = now.getUTCFullYear();
+    const currentMonth = now.getUTCMonth();
+
+    const startDate = new Date(Date.UTC(currentYear, currentMonth - 2, 1)); // April 1
+    const endDate = new Date(Date.UTC(currentYear, currentMonth + 1, 0));   // June 30
+
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    });
+
+    const allDatesIn3Months = [];
+    let loopDate = new Date(startDate);
+
+    while (loopDate <= endDate) {
+        allDatesIn3Months.push(formatter.format(loopDate));
+        loopDate.setUTCDate(loopDate.getUTCDate() + 1);
+    }
+
+    const result = await client.execute({
+        sql: `
+        WITH converted_orders AS (
+            SELECT 
+                pricing,
+                id,
+                strftime('%Y-%m-%d', 
+                    substr(date, -4) || '-' || 
+                    CASE 
+                        WHEN date LIKE 'January%' THEN '01'
+                        WHEN date LIKE 'February%' THEN '02'
+                        WHEN date LIKE 'March%' THEN '03'
+                        WHEN date LIKE 'April%' THEN '04'
+                        WHEN date LIKE 'May%' THEN '05'
+                        WHEN date LIKE 'June%' THEN '06'
+                        WHEN date LIKE 'July%' THEN '07'
+                        WHEN date LIKE 'August%' THEN '08'
+                        WHEN date LIKE 'September%' THEN '09'
+                        WHEN date LIKE 'October%' THEN '10'
+                        WHEN date LIKE 'November%' THEN '11'
+                        WHEN date LIKE 'December%' THEN '12'
+                    END || '-' || 
+                    printf('%02d', substr(date, instr(date, ' ') + 1, instr(date, ',') - instr(date, ' ') - 1))
+                ) AS iso_date
+            FROM orders
+            WHERE status = 'active'
+            AND date IN ('${allDatesIn3Months.join("', '")}')
+        ),
+        monthly_bounds AS (
+            SELECT 
+                pricing,
+                id,
+                -- Group by Year AND Month (e.g., '2025-12' and '2026-01')
+                strftime('%Y-%m', iso_date) AS year_month,
+                -- Keep just the month part for the text mapping
+                strftime('%m', iso_date) AS month_part,
+                -- Keep the year part for the text mapping
+                strftime('%Y', iso_date) AS year_part
+            FROM converted_orders
+        )
+        SELECT             
+            -- Construct the custom string: "Month Year" (e.g., "December 2025")
+            CASE month_part
+                WHEN '01' THEN 'January' WHEN '02' THEN 'February' WHEN '03' THEN 'March'
+                WHEN '04' THEN 'April'   WHEN '05' THEN 'May'      WHEN '06' THEN 'June'
+                WHEN '07' THEN 'July'    WHEN '08' THEN 'August'   WHEN '09' THEN 'September'
+                WHEN '10' THEN 'October' WHEN '11' THEN 'November' WHEN '12' THEN 'December'
+            END || ' ' || year_part AS month_range,
+            
+            SUM(pricing) AS total,
+            SUM(SUM(pricing)) OVER() AS grand_total,
+            SUM(COUNT(id)) OVER() AS total_app_sale
+        FROM monthly_bounds
+        GROUP BY year_month
+        ORDER BY year_month ASC; -- Ensures chronological order across years (e.g., Dec 2025 -> Jan 2026)
+    `
+    });
+
+    if (result.rows && result.rows.length > 0) {
+        processedAmount.value = Number(result.rows[0]['grand_total'] || 0);
+        appSale.value = Number(result.rows[0]['total_app_sale'] || 0);
+
+        (chartData.value as any) = {
+            labels: result.rows.map((v: any) => v['month_range'].replace(/, \d{4}/, '')),
+            datasets: [{
+                label: 'App Sale ($)',
+                data: result.rows.map((v: any) => v['total']),
+                fill: true,
+                borderColor: 'rgba(223, 114, 153, 0.4)',                    // Strong Raspberry Pink Line
+                backgroundColor: 'rgba(223, 114, 153, 0.1)', // Subtle, transparent Pink Fill
+                tension: 0.5
+            }]
+        };
+    }
+    loadingPerfomance.value = false;
+}
+
 
 const getPerformance = async () => {
     if (performanceType.value == 'last7d') getLast7d();
     if (performanceType.value == 'thismonth') getCurrentMonth();
     if (performanceType.value == 'lastmonth') getLastMonth();
     if (performanceType.value == 'last3m') get3Month();
+    if (performanceType.value == 'last3m-monthly') get3MonthByMonthly();
 }
 
 const getFilterPerformanceLabel = () => {
@@ -503,7 +615,10 @@ const getFilterPerformanceLabel = () => {
             d.setUTCDate(d.getUTCDate() - i); // Subtract i days
             last7Days.push(formatter.format(d));
         }
-        return `Last 7 Days: ${last7Days[last7Days.length - 1].split(',')[0]} - ${last7Days[0]}`;
+        return {
+            label: 'Last 7 Days: ',
+            value: `${last7Days[last7Days.length - 1].split(',')[0]} - ${last7Days[0]}`
+        }        
     } else if (performanceType.value == 'thismonth') {
         const formatter = new Intl.DateTimeFormat('en-US', {
             timeZone: 'UTC',
@@ -512,7 +627,10 @@ const getFilterPerformanceLabel = () => {
 
         const currentMonth = formatter.format(new Date());
         const year = new Date().getFullYear();
-        return `This Month: ${currentMonth} ${year}`;
+        return {
+            label: 'This Month: ',
+            value: `${currentMonth} ${year}`
+        }  
     } else if (performanceType.value == 'lastmonth') {
         const now = new Date();
         const currentYear = now.getUTCFullYear();
@@ -528,7 +646,10 @@ const getFilterPerformanceLabel = () => {
         const lastMonth = monthFormatter.format(lastMonthDate);
         const year = yearFormatter.format(lastMonthDate);
 
-        return `Last Month: ${lastMonth} ${year}`;
+        return {
+            label: 'Last Month: ',
+            value: `${lastMonth} ${year}`
+        }  
     } else if (performanceType.value == 'last3m') {
         const now = new Date();
         const currentYear = now.getUTCFullYear();
@@ -546,8 +667,37 @@ const getFilterPerformanceLabel = () => {
         const endMonth = monthFormatter.format(rangeEndDate);
         const year = yearFormatter.format(rangeEndDate);
 
-        return `Last 3 Months: ${startMonth} - ${endMonth} ${year}`;
+        return {
+            label: 'Last 3 Months: ',
+            value: `${startMonth} - ${endMonth} ${year}`
+        }  
+        
+    } else if (performanceType.value == 'last3m-monthly') {
+        const now = new Date();
+        const currentYear = now.getUTCFullYear();
+        const currentMonth = now.getUTCMonth();
+
+        // Start date: 2 months ago (e.g., April if current is June)
+        const rangeStartDate = new Date(Date.UTC(currentYear, currentMonth - 2, 1));
+        // End date: This month (e.g., June)
+        const rangeEndDate = new Date(Date.UTC(currentYear, currentMonth, 1));
+
+        const monthFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long' });
+        const yearFormatter = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', year: 'numeric' });
+
+        const startMonth = monthFormatter.format(rangeStartDate);
+        const endMonth = monthFormatter.format(rangeEndDate);
+        const year = yearFormatter.format(rangeEndDate);
+        
+        return {
+            label: 'Last 3 Months: ',
+            value: `${startMonth} - ${endMonth} ${year}`
+        }  
     }
+    return {
+        label: '',
+        value: ``
+    }  
 }
 
 const filterPerformance = async () => {
@@ -561,8 +711,11 @@ const filterPerformance = async () => {
         text: 'Last Month',
         id: 'lastmonth'
     }, {
-        text: 'Last 3 Months',
+        text: 'Last 3 Months - Weekly View',
         id: 'last3m'
+    }, {
+        text: 'Last 3 Months - Monthly',
+        id: 'last3m-monthly'
     }]
     const actionSheet = await actionSheetController.create({
         header: 'Select filter',
