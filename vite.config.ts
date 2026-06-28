@@ -9,7 +9,9 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   plugins: [
     vue(),
-    legacy()
+    legacy({
+      renderLegacyChunks: false
+    })
   ],
   resolve: {
     alias: {
