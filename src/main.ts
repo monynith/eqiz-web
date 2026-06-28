@@ -39,76 +39,75 @@ const app = createApp(App)
   .use(IonicVue)
   .use(router);
 
-router.beforeEach(async (to, from, next) => {
-  if (to.path === '/access-denied') {
-    return next();
-  }
+// router.beforeEach(async (to, from, next) => {
+//   if (to.path === '/access-denied') {
+//     return next();
+//   }
 
-  // 1. Declare variables out here so BOTH try and catch blocks can see them
-  let toast: any = null;
-  let isRequestFinished = false;
-  let toastTimeout: any = null; 
+//   // 1. Declare variables out here so BOTH try and catch blocks can see them
+//   let toast: any = null;
+//   let isRequestFinished = false;
+//   let toastTimeout: any = null; 
 
-  try {
-    const WHITELIST = import.meta.env.VITE_WHITELIST_IP;
+//   try {
+//     const WHITELIST = import.meta.env.VITE_WHITELIST_IP;
 
-    // 2. Assign the timeout here (remove 'const')
-    toastTimeout = setTimeout(async () => {
-      if (!isRequestFinished) {
-        toast = await toastController.create({
-          message: 'Validating...',
-          position: 'middle',
-          color: "secondary"
-        });
-        if (!isRequestFinished) {
-          await toast.present();
-        } else if (toast) {
-          await toast.dismiss();
-        }
-      }
-    }, 1000);
+//     // 2. Assign the timeout here (remove 'const')
+//     toastTimeout = setTimeout(async () => {
+//       if (!isRequestFinished) {
+//         toast = await toastController.create({
+//           message: 'Validating...',
+//           position: 'middle',
+//           color: "secondary"
+//         });
+//         if (!isRequestFinished) {
+//           await toast.present();
+//         } else if (toast) {
+//           await toast.dismiss();
+//         }
+//       }
+//     }, 1000);
 
-    const response = await fetch('https://api.ipify.org?format=json');
+//     const response = await fetch('https://api.ipify.org?format=json');
     
-    isRequestFinished = true;
-    clearTimeout(toastTimeout);
+//     isRequestFinished = true;
+//     clearTimeout(toastTimeout);
 
-    if (!response.ok) throw new Error('Network response failed');
+//     if (!response.ok) throw new Error('Network response failed');
     
-    const data = await response.json();
-    const userIp = data.ip;
+//     const data = await response.json();
+//     const userIp = data.ip;
 
-    const ipArray = WHITELIST;
+//     const ipArray = WHITELIST;
 
-    if (toast) {
-      await toast.dismiss();
-    }
+//     if (toast) {
+//       await toast.dismiss();
+//     }
 
-    if (!ipArray.includes(userIp)) {
-      return next('/access-denied');
-    }
+//     if (!ipArray.includes(userIp)) {
+//       return next('/access-denied');
+//     }
 
-    next();
+//     next();
 
-  } catch (error) {
-    console.error("Failed to verify IP address", error);
+//   } catch (error) {
+//     console.error("Failed to verify IP address", error);
     
-    isRequestFinished = true;
+//     isRequestFinished = true;
     
-    // 3. This will now work perfectly because toastTimeout is in scope!
-    if (toastTimeout) {
-      clearTimeout(toastTimeout);
-    }
+//     // 3. This will now work perfectly because toastTimeout is in scope!
+//     if (toastTimeout) {
+//       clearTimeout(toastTimeout);
+//     }
     
-    if (toast) {
-      await toast.dismiss();
-    }
+//     if (toast) {
+//       await toast.dismiss();
+//     }
     
-    next('/access-denied');
-  }
-});
+//     next('/access-denied');
+//   }
+// });
 
-// 2. Simply wait for the router to be ready, then mount the app normally
 router.isReady().then(() => {
   app.mount('#app');
 });
