@@ -108,7 +108,19 @@ const app = createApp(App)
 //   }
 // });
 
+import { StatusBar } from '@capacitor/status-bar';
+
+const init = async ()=> {
+  try {
+    await StatusBar.setOverlaysWebView({ overlay: false });
+    await StatusBar.setBackgroundColor({ color: "#f5f0f0" })
+  } catch (error) {
+    console.warn('StatusBar plugin not available on web:', error);
+  }
+}
+
 router.isReady().then(() => {
   app.mount('#app');
+  init();
 });
 

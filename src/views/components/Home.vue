@@ -124,7 +124,7 @@ const getToday = async () => {
     const results = await client.batch([{
         sql: `
             SELECT COUNT(id) as count, SUM(pricing) as amount FROM orders 
-            WHERE date = '${todayDate}' 
+            WHERE date = '${todayDate.value}' 
             AND status = 'active'
         `
     }, {
@@ -136,10 +136,10 @@ const getToday = async () => {
     }]);
     if (results[0] && results[0].rows.length > 0) {
         (indicatorData.value.todaySale as any) = results[0].rows[0]['count'];
-        (indicatorData.value.todayAmount as any) = results[0].rows[0]['amount'] || 0;
+        (indicatorData.value.todayAmount as any) = Number(results[0].rows[0]['amount']).toFixed(2) || 0;
     }
     if (results[1] && results[1].rows.length > 0) {
-        (indicatorData.value.yesterdayAmount as any) = results[1].rows[0]['amount'] || 0;
+        (indicatorData.value.yesterdayAmount as any) = Number(results[1].rows[0]['amount']).toFixed(2) || 0;
     }
     loading.value = false;
 }
