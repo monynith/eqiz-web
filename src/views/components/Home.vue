@@ -9,11 +9,11 @@
                 <p class="key">Today App Sale (#)</p>
                 <p class="value"><span>{{ indicatorData.todaySale }}</span></p>
             </div>
-            <div class="indicator">
+            <div class="indicator" @click="moveEarning('today')">
                 <p class="key">Today Earning ($)</p>
                 <p class="value">$<span>{{ indicatorData.todayAmount }}</span></p>
             </div>
-            <div class="indicator">
+            <div class="indicator" @click="moveEarning('yesterday')">
                 <p class="key">Yesterday Earning ($)</p>
                 <p class="value">$<span>{{ indicatorData.yesterdayAmount }}</span></p>
                 <!-- <p class="value">$<span>168</span> / $<span>100</span></p> -->
@@ -43,6 +43,7 @@ import { ref } from 'vue';
 import { createClient } from '@libsql/client';
 import Skeleton from './Skeleton.vue';
 import AppSaleModal from '../components/AppSale.vue';
+import EarningModal from '../components/Earning.vue';
 
 const indicatorFilter = ref("today");
 const todayDate = ref("");
@@ -735,6 +736,20 @@ const filterPerformance = async () => {
 
     await actionSheet.present();
 };
+
+const moveEarning = async (type: string)=> {
+    const modal = await modalController.create({
+        component: EarningModal,
+        initialBreakpoint: 1,
+        breakpoints: [0, 1],
+        mode: "md",
+        componentProps: {
+            filterType: type
+        }
+    });
+
+    modal.present();
+}
 
 const moveAppSale = async ()=> {
     const modal = await modalController.create({

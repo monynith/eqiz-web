@@ -1,7 +1,7 @@
 <template>
     <div class="block">
         <div id="container" @touchmove.stop>
-            <p id="title">App Sale (#)</p>
+            <p id="title">Earning ($)</p>
             <Skeleton v-if="loading == true" />
             <div v-if="loading == false">
                 <div id="filter" @click="onFilter">
@@ -9,11 +9,11 @@
                 </div>
                 <div id="indicator-wrapper">
                     <div class="indicator">
-                        <p class="key">Total App Sale (#)</p>
-                        <p class="value"><span>{{ totalApp }}</span></p>
-                        <br/>
                         <p class="key">Total Earning ($)</p>
                         <p class="value">$<span>{{ totalEarning }}</span></p>
+                        <br/>
+                        <p class="key">Total App Sale (#)</p>
+                        <p class="value"><span>{{ totalApp }}</span></p>
                     </div>
                     <div id="store-wrapper">
                         <div class="store">
@@ -21,14 +21,14 @@
                                 <img src="../../assets/appstore.png" width="20px" />
                                 App Store 
                             </span>
-                            <span id="value">{{ appStoreCount }}</span>
+                            <span id="value">${{ appStoreCount ? appStoreCount.toFixed(2) : 0 }}</span>
                         </div>
                         <div class="store">
                             <span id="key">
                                 <img src="../../assets/playstore.png" width="20px" />
                                 Play Store 
                             </span>
-                            <span id="value">{{ playStoreCount }}</span>
+                            <span id="value">${{ playStoreCount ? playStoreCount.toFixed(2) : 0 }}</span>
                         </div>
                     </div>
                 </div>  
@@ -40,15 +40,15 @@
                             <th>App</th>
                             <th>Play Store</th>
                             <th>App Store</th>                
-                            <th>Total App Sale (#)</th>                                      
+                            <th>Total App Sale ($)</th>                                      
                         </tr>
                     </thead>
                     <tbody class="t-body">
                         <tr v-for="app in apps">
                             <td>{{ app['app'] }}</td>
-                            <td>{{ app['play_store_count'] }}</td>
-                            <td>{{ app['app_store_count'] }}</td>
-                            <td><b>{{ app['total_count'] }}</b></td>                        
+                            <td>{{ app['play_store_count'] ? '$' + Number(app['play_store_count']).toFixed(2) : '-' }}</td>
+                            <td>{{ app['app_store_count'] ? '$' + Number(app['app_store_count']).toFixed(2) : '-' }}</td>
+                            <td><b>{{ app['total_count'] ? '$' + Number(app['total_count']).toFixed(2) : '-' }}</b></td>                        
                         </tr>
                     </tbody>
                 </table>
@@ -70,9 +70,9 @@
                     <tbody class="t-body">
                         <tr v-for="country in countries">
                             <td>{{ getCountry(country['country']) }}</td>
-                            <td>{{ country['play_store_count'] }}</td>
-                            <td>{{ country['app_store_count'] }}</td>
-                            <td><b>{{ country['total_count'] }}</b></td>                        
+                            <td>{{ country['play_store_count'] ? '$' + Number(country['play_store_count']).toFixed(2) : '-' }}</td>
+                            <td>{{ country['app_store_count'] ? '$' + Number(country['app_store_count']).toFixed(2) : '-' }}</td>
+                            <td><b>{{ country['total_count'] ? '$' + Number(country['total_count']).toFixed(2) : '-' }}</b></td>                        
                         </tr>
                     </tbody>
                 </table>
@@ -93,9 +93,9 @@
                     <tbody class="t-body">
                         <tr v-for="summary in summaries">
                             <td>{{ summary['date'] }}</td>
-                            <td>{{ summary['play_store'] }}</td>
-                            <td>{{ summary['app_store'] }}</td>
-                            <td><b>{{ summary['total_app_sale'] }}</b></td>                        
+                            <td>{{ summary['play_store'] ? '$' + Number(summary['play_store']).toFixed(2) : '-' }}</td>
+                            <td>{{ summary['app_store'] ? '$' + Number(summary['app_store']).toFixed(2) : '-' }}</td>
+                            <td><b><td>{{ summary['total_app_sale'] ? '$' + Number(summary['total_app_sale']).toFixed(2) : '-' }}</td></b></td>                        
                         </tr>
                     </tbody>
                 </table>
@@ -174,6 +174,14 @@ const filterOption = [{
     text: 'Last 3 Months',
     id: 'last3m'
 }];
+
+const props = defineProps({
+  filterType: String,
+});
+
+if(props.filterType) {
+    (filterStatus.value as any) = props.filterType;
+}
 
 const chartOptions = ref({
     responsive: true
@@ -279,8 +287,8 @@ const init = async ()=> {
     const result = await client.execute({
         sql: `
             SELECT COUNT(id) as count, SUM(pricing) as amount,
-            COUNT(CASE WHEN store = 'App Store' THEN id END) as app_store,
-            COUNT(CASE WHEN store = 'Play Store' THEN id END) as play_store
+            SUM(CASE WHEN store = 'App Store' THEN pricing END) as app_store,
+            SUM(CASE WHEN store = 'Play Store' THEN pricing END) as play_store
             FROM orders 
             ${whereString}
             AND status = 'active'
@@ -312,10 +320,10 @@ const getPerApps = async ()=> {
             WITH RankedApps AS (
                 SELECT 
                     app_id,
-                    COUNT(id) as total_sales, -- Total sales used for ranking
-                    COUNT(CASE WHEN store = 'App Store' THEN id END) as app_store_sales,
-                    COUNT(CASE WHEN store = 'Play Store' THEN id END) as play_store_sales,
-                    ROW_NUMBER() OVER (ORDER BY COUNT(id) DESC) as sales_rank
+                    SUM(pricing) as total_sales, -- Total sales used for ranking
+                    SUM(CASE WHEN store = 'App Store' THEN pricing END) as app_store_sales,
+                    SUM(CASE WHEN store = 'Play Store' THEN pricing END) as play_store_sales,
+                    ROW_NUMBER() OVER (ORDER BY SUM(pricing) DESC) as sales_rank
                 FROM orders
                 ${whereString}
                 AND status = 'active'
@@ -375,10 +383,10 @@ const getPerCountries = async ()=> {
             WITH RankedCountries AS (
                 SELECT 
                     country,
-                    COUNT(id) as total_sales, -- Total sales used for ranking countries
-                    COUNT(CASE WHEN store = 'App Store' THEN id END) as app_store_sales,
-                    COUNT(CASE WHEN store = 'Play Store' THEN id END) as play_store_sales,
-                    ROW_NUMBER() OVER (ORDER BY COUNT(id) DESC) as sales_rank
+                    SUM(pricing) as total_sales, -- Total sales used for ranking countries
+                    SUM(CASE WHEN store = 'App Store' THEN pricing END) as app_store_sales,
+                    SUM(CASE WHEN store = 'Play Store' THEN pricing END) as play_store_sales,
+                    ROW_NUMBER() OVER (ORDER BY SUM(pricing) DESC) as sales_rank
                 FROM orders
                 ${whereString}
                 AND status = 'active'
@@ -440,9 +448,9 @@ const getSummary = async ()=> {
         sql: `
             SELECT 
                 date,
-                COUNT(CASE WHEN store = 'Play Store' THEN id END) as play_store,
-                COUNT(CASE WHEN store = 'App Store' THEN id END) as app_store,
-                COUNT(id) as total_app_sale
+                SUM(CASE WHEN store = 'Play Store' THEN pricing END) as play_store,
+                SUM(CASE WHEN store = 'App Store' THEN pricing END) as app_store,
+                SUM(pricing) as total_app_sale
             FROM orders 
             ${ whereString }
             AND status = 'active'
