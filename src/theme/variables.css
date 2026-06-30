@@ -10,3 +10,11 @@ http://ionicframework.com/docs/theming/ */
 .text-right {
   text-align: right;
 }
+
+.m-t-20 {
+  margin-top: 20px;
+}
+
+.m-b-20 {
+  margin-bottom: 20px;
+}

@@ -162,23 +162,18 @@ const getOrders = async (date: any) => {
     }, {
         sql: `
             SELECT * FROM orders 
-            WHERE 
-            substr(date, 1, instr(Date, ' ') - 1) IN ('${month}') 
-            AND Date LIKE '%${year}' 
+            WHERE date LIKE '%${month}%${year}' 
             AND status = 'active' 
             ORDER BY id DESC LIMIT 100
         `
-    }]);
-    const total = await client.execute({
+    }, {
         sql: `
             SELECT SUM(pricing) as total FROM orders 
-            WHERE 
-            substr(date, 1, instr(Date, ' ') - 1) IN ('${month}') 
-            AND Date LIKE '%${year}' 
+            WHERE date LIKE '%${month}%${year}' 
             AND status = 'active'             
         `
-    });
-    (totalAmount.value as any) = total['rows']['0']['total'];
+    }]);
+    (totalAmount.value as any) = result[2].rows['0']['total'];
     (apps.value as any) = result[0].rows;
     (orders.value as any) = result[1].rows;
     loading.value = false;

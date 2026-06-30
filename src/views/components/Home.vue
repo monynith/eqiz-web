@@ -5,7 +5,7 @@
             <span v-if="indicatorFilter == 'today'">Today<b style="color: black">: {{ todayDate }}</b>&nbsp;</span>
         </div>
         <div id="indicator-wrapper">
-            <div class="indicator">
+            <div class="indicator" @click="moveAppSale">
                 <p class="key">Today App Sale (#)</p>
                 <p class="value"><span>{{ indicatorData.todaySale }}</span></p>
             </div>
@@ -38,16 +38,17 @@
 import { Line } from 'vue-chartjs'
 import 'chart.js/auto'
 import { chevronDownOutline } from 'ionicons/icons';
-import { actionSheetController, IonIcon } from '@ionic/vue';
+import { actionSheetController, IonIcon, modalController } from '@ionic/vue';
 import { ref } from 'vue';
 import { createClient } from '@libsql/client';
 import Skeleton from './Skeleton.vue';
+import AppSaleModal from '../components/AppSale.vue';
 
 const indicatorFilter = ref("today");
 const todayDate = ref("");
 const loading = ref(true);
 const loadingPerfomance = ref(true);
-const performanceType = ref("last7d")
+const performanceType = ref("thismonth")
 const processedAmount = ref(0);
 const appSale = ref(0);
 
@@ -734,6 +735,17 @@ const filterPerformance = async () => {
 
     await actionSheet.present();
 };
+
+const moveAppSale = async ()=> {
+    const modal = await modalController.create({
+        component: AppSaleModal,
+        initialBreakpoint: 1,
+        breakpoints: [0, 1],
+        mode: "md"
+    });
+
+    modal.present();
+}
 
 getToday();
 getPerformance();

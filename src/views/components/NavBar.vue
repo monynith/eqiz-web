@@ -2,7 +2,7 @@
   <div class="nav">
     <div id="logo">
         <img src="../../assets/logo.png" />
-        <span>Eqiz App</span>
+        <span>Eqiz Studio</span>
     </div>    
     <div class="menu" :class="{'active' : action == 'home'}" @click="navi('home')">
         <ion-icon :icon="albumsOutline"></ion-icon> 

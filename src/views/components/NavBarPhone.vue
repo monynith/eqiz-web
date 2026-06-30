@@ -2,7 +2,7 @@
     <div class="nav-phone">
         <div id="logo">
             <img src="../../assets/logo.png" />
-            <span>Eqiz App</span>
+            <span>Eqiz Studio</span>
         </div>   
         <ion-icon :icon="menuOutline" @click="menu"></ion-icon> 
     </div>
