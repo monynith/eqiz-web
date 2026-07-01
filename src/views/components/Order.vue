@@ -48,7 +48,7 @@
                 </tbody>
             </table>
         </div>  
-        <div id="pagination">
+        <div id="pagination" v-if="Math.ceil(PAGE_SIZE / LIMIT) > 0">
             <ion-icon :icon="chevronBackOutline" @click="movePage('prev')" :style="{ opacity: ((OFFSET / LIMIT) + 1) <= 1 ? 0.3 : 0.8, cursor: ((OFFSET / LIMIT) + 1) > 1 ? 'pointer' : '' }"></ion-icon> 
             <span>Page <b>{{ (OFFSET / LIMIT) + 1 }}</b> of {{ Math.ceil(PAGE_SIZE / LIMIT) }}</span>
             <ion-icon :icon="chevronForwardOutline" @click="movePage('next')" :style="{ opacity: ((OFFSET / LIMIT) + 1) == Math.ceil(PAGE_SIZE / LIMIT) ? 0.3 : 0.8, cursor: ((OFFSET / LIMIT) + 1) == Math.ceil(PAGE_SIZE / LIMIT) ? '' : 'pointer' }"></ion-icon> 
@@ -79,6 +79,7 @@ const changeMonth = (event: any)=> {
     loading.value = true;
     // new Date(event.detail.value) and new Date()
     // console.log(checkSameMonthAndYear(event.detail.value));
+    OFFSET = 0;
     if(!event.detail.value) {
         getOrders(new Date())
     } else {
