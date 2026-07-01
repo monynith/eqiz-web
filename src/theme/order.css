@@ -141,6 +141,30 @@
     border-radius: 8px;
 }
 
+#pagination {
+    display: flex;
+    align-items: center;
+    color: #585858;
+    margin-top: 20px;
+    justify-content: flex-end;
+}
+
+#pagination span {
+    margin-left: 10px;
+    margin-right: 10px;
+    font-size: 0.9rem;
+    font-style: italic;
+}
+
+#pagination ion-icon {
+    padding: 5px;
+    background: #eaeaea;
+    border-radius: 50%;
+    opacity: 0.8;
+    font-size: 0.8rem;
+    margin-top: 2px;
+}
+
 @media screen and (max-width: 700px) {
   .header-wrapper {
     flex-direction: column;
