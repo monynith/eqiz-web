@@ -80,7 +80,10 @@
                 <br/>
                 <br/>
                 
-                <p class="label">Summary by Date</p>    
+                <div id="summary">
+                    <p class="label">Summary by Date</p>   
+                    <ion-icon :icon="copyOutline" @click="copyToClip(summaries)"></ion-icon>  
+                </div>                
                 <table class="table">
                     <thead>
                         <tr>
@@ -108,9 +111,9 @@
 </template>
 
 <script setup lang="ts">
-import { actionSheetController, IonIcon } from '@ionic/vue';
+import { actionSheetController, IonIcon, toastController } from '@ionic/vue';
 import { createClient } from '@libsql/client';
-import { chevronDownOutline } from 'ionicons/icons';
+import { chevronDownOutline, copyOutline } from 'ionicons/icons';
 import { ref } from 'vue';
 import { Doughnut } from 'vue-chartjs';
 import getCountryISO2 from 'country-iso-3-to-2';
@@ -501,6 +504,23 @@ const onFilter = async ()=> {
 const getFilterLabel = ()=> {
     const label = filterOption.find(v => v['id'] == filterStatus.value);
     return label ? label['text'] : ''
+}
+
+const copyToClip = (data: any)=> {
+    const str = JSON.stringify(data);
+    navigator.clipboard.writeText(str)
+    .then(async () => {      
+        const toast = await toastController.create({
+            message: 'Copied Successfully.',
+            position: 'bottom',
+            duration: 2500,
+            color: "secondary"
+        });
+        await toast.present();
+    })
+    .catch(err => {
+      console.error('Failed to copy text: ', err);
+    });
 }
 
 init();
