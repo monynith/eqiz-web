@@ -188,8 +188,7 @@ const getOrders = async (date: any) => {
     // get current month
     // const now = new Date();
     // console.log(date);
-    // const month = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
-    const month = 'June';
+    const month = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);    
     const year = date.getFullYear();
 
     monthYear.value = `${month} ${year}`
