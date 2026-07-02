@@ -23,7 +23,7 @@
     <div id="data-wrapper">
         <div>
             <p id="label">Performance</p>
-            <p id="amount" v-if="loadingPerfomance == false">$<span>{{ processedAmount }}</span> of {{ appSale }} apps
+            <p id="amount" v-if="loadingPerfomance == false">$<span>{{ processedAmount.toFixed(2) }}</span> of {{ appSale }} apps
                 processed</p>
         </div>
         <div id="filter" v-if="loadingPerfomance == false" @click="filterPerformance">
