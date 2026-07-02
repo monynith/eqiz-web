@@ -358,12 +358,12 @@ const getPerApps = async ()=> {
             label: 'Top 5 App Sales',
             data: apps.value.map(v => v['total_count']),
             backgroundColor: [
-                'rgba(142, 216, 183)',
-                'rgba(105, 184, 244)',
-                'rgba(190, 207, 246)',
-                'rgba(200, 153, 244)',
-                'rgba(200, 153, 244)',
-                'rgba(182, 190, 199)'
+                'rgba(205 180 219)',
+                'rgba(255 200 221)',
+                'rgba(255 175 204)',
+                'rgba(189 224 254)',
+                'rgba(162 210 255)',
+                'rgba(72 202 228)'
             ],
             // hoverOffset: 4
         }]
@@ -422,12 +422,12 @@ const getPerCountries = async ()=> {
                 label: 'Top 5 Country Sales',
                 data: countries.value.map(v => v['total_count']),
                 backgroundColor: [
-                    'rgba(142, 216, 183)',
-                    'rgba(105, 184, 244)',
-                    'rgba(190, 207, 246)',
-                    'rgba(200, 153, 244)',
-                    'rgba(200, 153, 244)',
-                    'rgba(182, 190, 199)'
+                    'rgba(205 180 219)',
+                    'rgba(255 200 221)',
+                    'rgba(255 175 204)',
+                    'rgba(189 224 254)',
+                    'rgba(162 210 255)',
+                    'rgba(72 202 228)'
                 ],
                 // hoverOffset: 4
             }]

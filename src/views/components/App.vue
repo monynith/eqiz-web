@@ -94,7 +94,7 @@ const init = async () => {
         authToken: dbToken,
     });
     const result = await client.execute({
-        sql: "SELECT * FROM apps where status = 'active' ORDER BY name LIMIT 100"
+        sql: "SELECT * FROM apps where status = 'active' ORDER BY name LIMIT 150"
     });
 
     loading.value = false;

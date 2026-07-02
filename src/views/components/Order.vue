@@ -202,7 +202,7 @@ const getOrders = async (date: any) => {
         authToken: dbToken,
     });
     const result = await client.batch([{
-        sql: "SELECT * FROM apps where status = 'active' ORDER BY name LIMIT 100"
+        sql: "SELECT * FROM apps where status = 'active' ORDER BY name LIMIT 150"
     }, {
         sql: `
             SELECT * FROM orders 
