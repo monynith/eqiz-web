@@ -8,6 +8,10 @@
                         <div slot="label" class="my-custom-label">Date</div>
                     </ion-input>
                 </ion-item>
+                <div id="chip-wrapper">
+                    <ion-chip @click="setDate('today')">Today</ion-chip>  
+                    <ion-chip  @click="setDate('yesterday')">Yesterday</ion-chip>           
+                </div>   
                 <ion-item>
                     <ion-input mode="ios" label-placement="stacked" placeholder="Enter App ID" @ion-input="enterAppID" v-model="appID">
                         <div slot="label" class="my-custom-label"># App ID</div>
@@ -267,6 +271,35 @@ const create = async ()=> {
         await toast.present();
     } 
 
+}
+
+const getYesterday = ()=> {
+    const options: any = {
+        timeZone: 'UTC',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    };
+    const yesterday = new Date();
+    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+    const yesterdayDate = new Intl.DateTimeFormat('en-US', options).format(yesterday);
+    return yesterdayDate;
+}
+
+const setDate = (type: string)=> {
+    const options: any = {
+        timeZone: 'UTC',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric'
+    };
+    if(type == 'today'){        
+        date.value = new Intl.DateTimeFormat('en-US', options).format(new Date());
+    } else {
+        const yesterday = new Date();
+        yesterday.setUTCDate(yesterday.getUTCDate() - 1);  
+        date.value = new Intl.DateTimeFormat('en-US', options).format(yesterday); 
+    }
 }
 
 </script>
