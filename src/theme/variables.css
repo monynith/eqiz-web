@@ -15,6 +15,34 @@ http://ionicframework.com/docs/theming/ */
   margin-top: 20px;
 }
 
+.m-b-10 {
+  margin-bottom: 10px !important;
+}
+
 .m-b-20 {
   margin-bottom: 20px;
+}
+
+.m-b-0 {
+  margin-bottom: 0px !important;
+}
+
+.p-b-0 {
+  padding-bottom: 0px !important;
+}
+
+ion-alert,
+.alert-wrapper,
+.alert-wrapper:focus,
+.alert-wrapper:focus-visible,
+.alert-input-group,
+.alert-input {
+  outline: none !important;
+  box-shadow: none !important;
+  --box-shadow: none !important;
+}
+
+/* Specifically remove the high-contrast browser outline on focus-visible */
+:focus-visible {
+  outline: none !important;
 }

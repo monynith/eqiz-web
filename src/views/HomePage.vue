@@ -8,6 +8,7 @@
             <Home v-if="action == 'home'" />     
             <App v-if="action == 'apps'" /> 
             <Order v-if="action == 'orders'" /> 
+            <ContentManagement v-if="action == 'contents'" /> 
         </MainContent>
       </div>
     </ion-content>
@@ -22,13 +23,14 @@ import Home from './components/Home.vue';
 import App from './components/App.vue';
 import Order from './components/Order.vue';
 import NavBarPhone from './components/NavBarPhone.vue';
+import ContentManagement from './components/ContentManagement.vue';
 
 let action = 'home';
 const title: Record<string, string> = { 
   'home': "Dashboard",
   'orders': "Orders",
   'apps': "App Lists",
-  'content': "Content Management",
+  'contents': "Content Management",
   'reports': "Reports"
 }
 
