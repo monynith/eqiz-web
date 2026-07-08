@@ -9,7 +9,7 @@
 
         <div class="header-wrapper">
             <div id="total-wrapper">
-                <p id="total-label">$<span id="amount">{{ totalAmount || 0 }}</span> processed &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; </p> 
+                <p id="total-label">$<span id="amount">{{ totalAmount ? Number(totalAmount).toFixed(2) : 0 }}</span> processed &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; </p> 
                 <div id="filter" @click="openMonth">
                     <span>{{monthYear}}</span> <ion-icon :icon="chevronDownOutline"></ion-icon> 
                 </div>

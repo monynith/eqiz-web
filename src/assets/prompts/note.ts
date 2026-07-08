@@ -140,7 +140,7 @@ const A = \`
 \`;
 
 
-Generate the same with $RP{app-name} for $RP{cert-name} on $RP{domain-name}
+Generate the same with $RP{app-name} for $RP{cert-name}
 
 - Hit at least 10000 characters and at most 12000 characters (This is a must). 
 - No mathjax and latex. 

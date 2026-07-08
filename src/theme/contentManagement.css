@@ -14,12 +14,21 @@
     margin-left: 30px;
 }
 
+#download-btn-wrapper {
+    margin-top: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
 .create-btn-standalone {
     color: palevioletred;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: bold;
-    display: flex;
-    align-items: center;
+    margin-top: 5px;
+    cursor: pointer;
+    width: fit-content;
 }
 
 .create-btn-standalone ion-icon {

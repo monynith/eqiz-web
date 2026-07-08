@@ -5,8 +5,11 @@
     </div> 
     <div id="app-wrapper">        
         <p id="app-id">App ID: <span id="value">{{ contentData['appId'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
-        <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
-        <p class="create-btn-standalone" :style="{ opacity: isDownloadable == true ? 1 : 0.5 }">DOWNLOAD <ion-icon :icon="download"></ion-icon></p>
+        <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>        
+        <div id="download-btn-wrapper">
+            <span class="create-btn-standalone" @click="downloadContent()">DOWNLOAD CONTENT <ion-icon :icon="download"></ion-icon></span>
+            <span class="create-btn-standalone" style="color: cadetblue;" @click="downloadQuestions()">DOWNLOAD QUESTIONS <ion-icon :icon="download"></ion-icon></span>
+        </div>        
     </div>      
     <div id="template-wrapper">
         <div id="left">
@@ -117,6 +120,8 @@ import question from '@/assets/prompts/question';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle } from '@ionic/vue';
 import { add, checkmarkCircleSharp, checkmarkDoneCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, copyOutline, createOutline, download } from 'ionicons/icons';
 import { ref } from 'vue';
+import JSZip from 'jszip';
+import domain from '@/assets/prompts/domain';
 
 const contentData = ref({
     appId: 'quant',
@@ -126,10 +131,22 @@ const contentData = ref({
         { "id": "quant-cqf", "name": "CQF Module 1: Building Blocks of Quantitative Finance" }
     ], 
     domains: {
-        'quant-prm1': [
+        'quant-prm1': [            
             {
                 "id": "A",
                 "part": "Finance Theory"
+            },
+            {
+                "id": "B",
+                "part": "Financial Instruments"
+            },
+            {
+                "id": "C",
+                "part": "Financial Mathematics"
+            },
+            {
+                "id": "D",
+                "part": "Applications of Financial Theory"
             }
         ]        
     },
@@ -541,6 +558,104 @@ const validateQuestions = (questions: any, domain: any)=> {
 
 const saveContent = ()=> {
     console.log(contentData.value);
+}
+
+const getNotes = (certId: string)=> {
+    let notes = `const notes = ${JSON.stringify((contentData.value.domains as any)[certId], null, 6)}`;    
+    // console.log(contentData.value.content)
+    if(!(contentData.value.domains as any)[certId]) (contentData.value.domains as any)[certId] = [];
+    (contentData.value.domains as any)[certId].forEach((v: any) => {        
+        notes = notes + '\n\n';
+        // console.log((contentData.value.content as any)[certId]['note'][v['id']])
+        if((contentData.value.content as any)[certId] && (contentData.value.content as any)[certId]['note']) {
+            notes = notes + `const ${v['id']}=\`\n\n${(contentData.value.content as any)[certId]['note'][v['id']]}\n\n\``
+        }
+    });
+    notes = notes + '\n\n';            
+    notes = notes + `export default {
+        list: notes,
+        ${(contentData.value.domains as any)[certId].map((v: any)=> v['id']).join(', ')}
+    };`    
+    // (contentData.value.content as any)[certId]['note']
+    return notes;
+}
+
+const downloadQuestions = async ()=> {
+    const zip = new JSZip();
+    contentData.value.certifications.forEach(v=> {
+        const folder = zip.folder(v.id); 
+        let question: any = [];
+        if(!(contentData.value.domains as any)[v.id]) (contentData.value.domains as any)[v.id] = [];
+        (contentData.value.domains as any)[v.id].forEach((domain: any) => {   
+            const qs = (contentData.value.question as any)[selectedCertification.value['id']] && (contentData.value.question as any)[selectedCertification.value['id']][domain['id']];
+            if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
+        });
+        folder?.file(`${v.id}.json`, JSON.stringify(question, null, 6));
+    })
+    try {
+        // Generate the zip file
+        const content = await zip.generateAsync({ type: "blob" });
+
+        // Create a temporary download link
+        const url = URL.createObjectURL(content);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `questions-${contentData.value.appId}-${new Date().getTime()}.zip`;
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error("Error generating zip:", error);
+    }
+}
+
+const downloadContent = async ()=> {
+    const zip = new JSZip();
+
+    // Add a text file
+    zip.file("meta.json", JSON.stringify({
+        appId: contentData.value.appId,
+        appName: contentData.value.appName,
+        appIds: contentData.value.certifications.map(v => v.id),
+        certifications: contentData.value.certifications,
+        domains: contentData.value.domains
+    }, null, 6));
+
+    // Create a folder and add an image/file
+    contentData.value.certifications.forEach(v=> {
+        const folder = zip.folder(v.id); 
+        if((contentData.value.content as any)[v.id] && (contentData.value.content as any)[v.id]['note']) folder?.file("notes.ts", getNotes(v.id))
+        if((contentData.value.content as any)[v.id] && (contentData.value.content as any)[v.id]['glossary']) folder?.file("glossary.ts", (contentData.value.content as any)[v.id]['glossary'])
+        if((contentData.value.content as any)[v.id] && (contentData.value.content as any)[v.id]['examtip']) folder?.file("exam-tip.ts", (contentData.value.content as any)[v.id]['examtip'])
+        if((contentData.value.content as any)[v.id] && (contentData.value.content as any)[v.id]['cheatsheet']) folder?.file("cheat-sheet.ts", (contentData.value.content as any)[v.id]['cheatsheet'])
+    })
+    // const imgFolder = zip.folder("images");
+    // Assuming 'sampleData' is your base64 string or ArrayBuffer
+    // (imgFolder as any).file("sample.png", "base64-data-here...", { base: true });
+
+    try {
+        // Generate the zip file
+        const content = await zip.generateAsync({ type: "blob" });
+
+        // Create a temporary download link
+        const url = URL.createObjectURL(content);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${contentData.value.appId}-${new Date().getTime()}.zip`;
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error("Error generating zip:", error);
+    }
 }
 
 </script>
