@@ -141,8 +141,8 @@ const contentData = ref({
 
 const isDownloadable = ref(false);
 const selectedCertification = ref({
-    id: 'quant-prm1',
-    name: 'PRM Exam 1: Finance Theory, Financial Instruments & Mathematics'
+    id: '',
+    name: ''
 });
 const calculation = ref(false);
 
