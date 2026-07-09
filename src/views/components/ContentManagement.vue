@@ -1,6 +1,6 @@
 <template>
     <div id="btn-wrapper">
-        <p class="create-btn">CREATE AGAIN</p>
+        <p class="create-btn" @click="createAgain">CREATE AGAIN</p>
         <p class="create-btn" style="color: cadetblue;" @click="saveContent">SAVE CONTENT</p>
     </div> 
     <div id="app-wrapper">        
@@ -8,9 +8,14 @@
         <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>        
         <div id="download-btn-wrapper" v-if="contentData['appId'] != ''">
             <span class="create-btn-standalone" @click="downloadContent()">DOWNLOAD CONTENT <ion-icon :icon="download"></ion-icon></span>
-            <span class="create-btn-standalone" style="color: cadetblue;" @click="downloadQuestions()">DOWNLOAD QUESTIONS <ion-icon :icon="download"></ion-icon></span>
+            <span class="create-btn-standalone" @click="loadQuestion()" v-if="contentData['certifications']">LOAD QUESTIONS <ion-icon :icon="cloudUpload"  style="position: relative; top: 2px;"></ion-icon></span>
+            <span class="create-btn-standalone" @click="downloadQuestions()">DOWNLOAD QUESTIONS <ion-icon :icon="download"></ion-icon></span>
         </div>     
-        <div style="height: 15px;"></div>   
+        <div id="download-btn-wrapper" v-if="contentData['appId'] == ''">
+            <input type="file" id="fileInput" style="display: none;" />
+            <span class="create-btn-standalone" @click="loadMeta()">LOAD META <ion-icon :icon="cloudUpload" style="position: relative; top: 2px;"></ion-icon></span>            
+        </div>  
+        <!-- <div style="height: 17px;"></div>    -->
     </div>      
     <div id="template-wrapper">
         <div id="left">
@@ -119,7 +124,7 @@ import glossary from '@/assets/prompts/glossary';
 import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle } from '@ionic/vue';
-import { add, checkmarkCircleSharp, checkmarkDoneCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, copyOutline, createOutline, download } from 'ionicons/icons';
+import { add, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, copyOutline, createOutline, download } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
 
@@ -569,7 +574,7 @@ const downloadQuestions = async ()=> {
         let question: any = [];
         if(!(contentData.value.domains as any)[v.id]) (contentData.value.domains as any)[v.id] = [];
         (contentData.value.domains as any)[v.id].forEach((domain: any) => {   
-            const qs = (contentData.value.question as any)[selectedCertification.value['id']] && (contentData.value.question as any)[selectedCertification.value['id']][domain['id']];
+            const qs = (contentData.value.question as any)[v.id] && (contentData.value.question as any)[v.id][domain['id']];
             if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
         });
         folder?.file(`${v.id}.json`, JSON.stringify(question, null, 6));
@@ -604,7 +609,8 @@ const downloadContent = async ()=> {
         appName: contentData.value.appName,
         appIds: contentData.value.certifications.map((v: any) => v.id),
         certifications: contentData.value.certifications,
-        domains: contentData.value.domains
+        domains: contentData.value.domains,
+        content: contentData.value.content
     }, null, 6));
 
     // Create a folder and add an image/file
@@ -638,6 +644,112 @@ const downloadContent = async ()=> {
     } catch (error) {
         console.error("Error generating zip:", error);
     }
+}
+
+const createAgain = ()=> {
+    contentData.value = {
+        appId: '',
+        appName: '',
+        certifications: [
+            
+        ], 
+        domains: {
+                
+        },
+        content: {
+            
+        },
+        question: {
+            
+        }
+    };
+    selectedCertification.value = {
+        id: '',
+        name: ''
+    }
+}
+
+const loadMeta = async ()=> {
+    try {
+        if((window as any)['showOpenFilePicker']){
+            const [fileHandle] = await (window as any).showOpenFilePicker({ types: [
+                {
+                    description: 'Content JSON file',
+                    accept: {
+                        'image/*': ['.json']
+                    }
+                }
+            ]});
+            
+            const file = await fileHandle.getFile();
+            const contents = await file.text();
+            const meta = JSON.parse(contents);
+            contentData.value = {
+                appId: meta['appId'],
+                appName: meta['appName'],
+                certifications: meta['certifications'], 
+                domains: meta['domains'],
+                content: meta['content'] || {},
+                question: {
+                    
+                }
+            }
+            selectedCertification.value = {
+                id: meta['certifications'][0].id,
+                name: meta['certifications'][0].name
+            }
+        }
+    } catch(e) {
+        console.log(e)
+        const toast = await toastController.create({
+            message: 'Something went wrong.',
+            duration: 3500,
+            position: 'bottom',
+            color: "danger"
+        });
+
+        await toast.present();
+    }    
+}
+
+const loadQuestion = async ()=> {
+    try {
+        if((window as any)['showOpenFilePicker']){
+            const [fileHandle] = await (window as any).showOpenFilePicker({ types: [
+                {
+                    description: 'Question JSON file',
+                    accept: {
+                        'image/*': ['.json']
+                    }
+                }
+            ]});
+            const file = await fileHandle.getFile();
+            const contents = await file.text();
+            const questions = JSON.parse(contents);
+            const groupedQuestions = Object.groupBy(questions, (item: any) => item['standard']);            
+
+            for(let standard in groupedQuestions) {                
+                const dm = (contentData.value as any).domains[selectedCertification.value.id].find((v: any) => {                    
+                    return v['part'] == standard
+                });
+                if(dm) {
+                    if(!(contentData.value as any).question[selectedCertification.value.id]) (contentData.value as any).question[selectedCertification.value.id] = {};
+                    (contentData.value as any).question[selectedCertification.value.id][dm.id] = groupedQuestions[standard];
+                }                
+            } 
+
+        }
+    } catch(e) {
+        console.log(e)
+        const toast = await toastController.create({
+            message: 'Something went wrong.',
+            duration: 3500,
+            position: 'bottom',
+            color: "danger"
+        });
+
+        await toast.present();
+    }    
 }
 
 </script>
