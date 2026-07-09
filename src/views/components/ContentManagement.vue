@@ -121,34 +121,15 @@ import { actionSheetController, alertController, IonIcon, toastController, IonTo
 import { add, checkmarkCircleSharp, checkmarkDoneCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, copyOutline, createOutline, download } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
-import domain from '@/assets/prompts/domain';
 
 const contentData = ref({
-    appId: 'quant',
-    appName: 'Quant Risk & Financial Exam Prep',
+    appId: '',
+    appName: '',
     certifications: [
-        { "id": "quant-prm1", "name": "PRM Exam 1: Finance Theory, Financial Instruments & Mathematics" },
-        { "id": "quant-cqf", "name": "CQF Module 1: Building Blocks of Quantitative Finance" }
+        
     ], 
     domains: {
-        'quant-prm1': [            
-            {
-                "id": "A",
-                "part": "Finance Theory"
-            },
-            {
-                "id": "B",
-                "part": "Financial Instruments"
-            },
-            {
-                "id": "C",
-                "part": "Financial Mathematics"
-            },
-            {
-                "id": "D",
-                "part": "Applications of Financial Theory"
-            }
-        ]        
+            
     },
     content: {
         
@@ -582,7 +563,7 @@ const getNotes = (certId: string)=> {
 
 const downloadQuestions = async ()=> {
     const zip = new JSZip();
-    contentData.value.certifications.forEach(v=> {
+    contentData.value.certifications.forEach((v: any) => {
         const folder = zip.folder(v.id); 
         let question: any = [];
         if(!(contentData.value.domains as any)[v.id]) (contentData.value.domains as any)[v.id] = [];
@@ -620,13 +601,13 @@ const downloadContent = async ()=> {
     zip.file("meta.json", JSON.stringify({
         appId: contentData.value.appId,
         appName: contentData.value.appName,
-        appIds: contentData.value.certifications.map(v => v.id),
+        appIds: contentData.value.certifications.map((v: any) => v.id),
         certifications: contentData.value.certifications,
         domains: contentData.value.domains
     }, null, 6));
 
     // Create a folder and add an image/file
-    contentData.value.certifications.forEach(v=> {
+    contentData.value.certifications.forEach((v: any)=> {
         const folder = zip.folder(v.id); 
         if((contentData.value.content as any)[v.id] && (contentData.value.content as any)[v.id]['note']) folder?.file("notes.ts", getNotes(v.id))
         if((contentData.value.content as any)[v.id] && (contentData.value.content as any)[v.id]['glossary']) folder?.file("glossary.ts", (contentData.value.content as any)[v.id]['glossary'])
