@@ -373,3 +373,25 @@
     font-size: 1rem;
     color: seagreen;
 }
+
+@media screen and (max-width: 1000px) {
+    #template-wrapper {
+        flex-direction: column;
+    }
+
+    #template-wrapper #left {
+        padding-right: 0px;
+    }
+
+    #template-wrapper #right {
+        padding-left: 0px;
+    }
+
+    #right #filter {
+        display: none;
+    }
+
+    #right #content-wrapper {
+        margin-top: 0px;
+    }
+}

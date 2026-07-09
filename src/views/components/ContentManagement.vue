@@ -6,10 +6,11 @@
     <div id="app-wrapper">        
         <p id="app-id">App ID: <span id="value">{{ contentData['appId'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
         <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>        
-        <div id="download-btn-wrapper">
+        <div id="download-btn-wrapper" v-if="contentData['appId'] != ''">
             <span class="create-btn-standalone" @click="downloadContent()">DOWNLOAD CONTENT <ion-icon :icon="download"></ion-icon></span>
             <span class="create-btn-standalone" style="color: cadetblue;" @click="downloadQuestions()">DOWNLOAD QUESTIONS <ion-icon :icon="download"></ion-icon></span>
-        </div>        
+        </div>     
+        <div style="height: 15px;"></div>   
     </div>      
     <div id="template-wrapper">
         <div id="left">
