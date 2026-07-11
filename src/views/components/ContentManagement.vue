@@ -1,19 +1,21 @@
 <template>
     <div id="btn-wrapper">
         <p class="create-btn" @click="createAgain">CREATE AGAIN</p>
-        <p class="create-btn" style="color: cadetblue;" @click="saveContent">SAVE CONTENT</p>
+        <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] != ''" @click="saveContent">{{ isSaving ? 'SAVING...' : 'SAVE CONTENT' }}</p>
+        <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] == ''" @click="loadContent">{{ isLoading ? 'LOADING...' : 'LOAD CONTENT' }}</p>
     </div> 
     <div id="app-wrapper">        
         <p id="app-id">App ID: <span id="value">{{ contentData['appId'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
         <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>        
         <div id="download-btn-wrapper" v-if="contentData['appId'] != ''">
-            <span class="create-btn-standalone" @click="downloadContent()">DOWNLOAD CONTENT <ion-icon :icon="download"></ion-icon></span>
+            <!-- <span class="create-btn-standalone" @click="downloadContent()">DOWNLOAD CONTENT <ion-icon :icon="download"></ion-icon></span>
             <span class="create-btn-standalone" @click="loadQuestion()" v-if="contentData['certifications']">LOAD QUESTIONS <ion-icon :icon="cloudUpload"  style="position: relative; top: 2px;"></ion-icon></span>
-            <span class="create-btn-standalone" @click="downloadQuestions()">DOWNLOAD QUESTIONS <ion-icon :icon="download"></ion-icon></span>
+            <span class="create-btn-standalone" @click="downloadQuestions()">DOWNLOAD QUESTIONS <ion-icon :icon="download"></ion-icon></span> -->
+            <span class="create-btn-standalone" @click="moreOption">OPTIONS <ion-icon :icon="attachOutline" style="position: relative; top: 2px;"></ion-icon></span>
         </div>     
         <div id="download-btn-wrapper" v-if="contentData['appId'] == ''">
             <input type="file" id="fileInput" style="display: none;" />
-            <span class="create-btn-standalone" @click="loadMeta()">LOAD META <ion-icon :icon="cloudUpload" style="position: relative; top: 2px;"></ion-icon></span>            
+            <span class="create-btn-standalone" @click="loadMeta()">LOAD META (FILE)<ion-icon :icon="attachOutline" style="position: relative; top: 2px;"></ion-icon></span>            
         </div>  
         <!-- <div style="height: 17px;"></div>    -->
     </div>      
@@ -124,9 +126,13 @@ import glossary from '@/assets/prompts/glossary';
 import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle } from '@ionic/vue';
-import { add, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, copyOutline, createOutline, download } from 'ionicons/icons';
+import { add, attachOutline, attachSharp, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, copyOutline, createOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
+import { createClient } from '@libsql/client';
+
+const isSaving = ref(false);
+const isLoading = ref(false);
 
 const contentData = ref({
     appId: '',
@@ -220,7 +226,7 @@ const addContent = async (type: string, domain?: any)=> {
                 } else {
                     (contentData.value.content as any)[selectedCertification.value.id][type] = result;  
                 }   
-                console.log((contentData.value.content as any));             
+                // console.log((contentData.value.content as any));             
             }
             await alert.dismiss();
         });
@@ -543,8 +549,75 @@ const validateQuestions = (questions: any, domain: any)=> {
     return results.slice(0, 390);
 }
 
-const saveContent = ()=> {
-    console.log(contentData.value);
+const generateCharId = (length = 8) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * chars.length);
+    result += chars.charAt(randomIndex);
+  }
+  
+  return result;
+}
+
+const saveContent = async ()=> {
+    // console.log(contentData.value);
+    if(isSaving.value == true) return;
+    isSaving.value = true;
+    const dbUrl = import.meta.env.VITE_DB_URL;
+    const dbToken = import.meta.env.VITE_DB_TOKEN;
+
+    const turso = createClient({
+        url: dbUrl,
+        authToken: dbToken,
+    }); 
+    const metaId = generateCharId();
+    let questions = {};
+    contentData.value.certifications.forEach((v: any) => {
+        let question: any = [];
+        if(!(contentData.value.domains as any)[v.id]) (contentData.value.domains as any)[v.id] = [];
+        (contentData.value.domains as any)[v.id].forEach((domain: any) => {   
+            const qs = (contentData.value.question as any)[v.id] && (contentData.value.question as any)[v.id][domain['id']];
+            if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
+        });
+        (questions as any)[v.id] = question;
+    });
+    // console.log(questions);
+    try {
+        await turso.batch([{
+            sql: `
+                INSERT INTO meta 
+                VALUES('${metaId}', '${contentData.value.appId}', '${contentData.value.appName}', '${JSON.stringify(contentData.value.certifications.map((v: any) => v.id))}', '${JSON.stringify(contentData.value.certifications)}', '${JSON.stringify(contentData.value.domains)}', '${JSON.stringify(contentData.value.content)}', 'active')
+            `
+        }, {
+            sql: `
+                INSERT INTO questions 
+                VALUES(null, '${metaId}', '${btoa(encodeURIComponent(JSON.stringify(questions)))}')
+            `
+        }]);
+        isSaving.value = false;
+        createAgain();
+        const toast = await toastController.create({
+            message: 'Successfully created.',
+            duration: 2000,
+            position: 'bottom',
+            color: "secondary"
+        });
+
+        await toast.present();
+    } catch(e){
+        console.log(e);
+        isSaving.value = false;
+        const toast = await toastController.create({
+            message: 'Something went wrong.',
+            duration: 3500,
+            position: 'bottom',
+            color: "danger"
+        });
+
+        await toast.present();
+    } 
 }
 
 const getNotes = (certId: string)=> {
@@ -750,6 +823,107 @@ const loadQuestion = async ()=> {
 
         await toast.present();
     }    
+}
+
+const loadFromDB = async (data: any)=> {
+    try {
+        const dbUrl = import.meta.env.VITE_DB_URL;
+        const dbToken = import.meta.env.VITE_DB_TOKEN;
+
+        const turso = createClient({
+            url: dbUrl,
+            authToken: dbToken,
+        });             
+        const result = await turso.execute({
+            sql: `SELECT * FROM meta as m INNER JOIN questions as q ON m.id = q.meta_id WHERE m.app_id='${data.appID}' `
+        });            
+        if(result.rows && result.rows.length > 0){
+            const meta: any = result.rows[0];
+            contentData.value = {
+                appId: meta['app_id'],
+                appName: meta['app_name'],
+                certifications: JSON.parse(meta['certifications']), 
+                domains: JSON.parse(meta['domains']),
+                content: JSON.parse(meta['content']) || {},
+                question: {
+                    
+                }
+            }            
+            selectedCertification.value = {
+                id: JSON.parse(meta['certifications'])[0].id,
+                name: JSON.parse(meta['certifications'])[0].name
+            }
+
+            // console.log(decodeURIComponent(atob(meta['json'])))        
+            const decodedString = atob(meta['json']);
+            const jsonString = decodeURIComponent(decodedString);                    
+            const questions = JSON.parse(jsonString);
+            // console.log(questions);
+            contentData.value.certifications.forEach((v: any)=> {
+                // console.log(v);
+                const groupedQuestions = Object.groupBy(questions[v.id], (item: any) => item['standard']);                        
+                for(let standard in groupedQuestions) {                
+                    const dm = (contentData.value as any).domains[v.id].find((v: any) => {                    
+                        return v['part'] == standard
+                    });
+                    if(dm) {
+                        if(!(contentData.value as any).question[v.id]) (contentData.value as any).question[v.id] = {};
+                        (contentData.value as any).question[v.id][dm.id] = groupedQuestions[standard];
+                    }                
+                } 
+            });
+
+        }
+        isLoading.value = false;
+    } catch(e){
+        console.log(e);
+        isLoading.value = false;
+    }    
+}
+
+const loadContent = async ()=> {
+    const alertInputs: any = [
+        {
+            placeholder: 'App ID',
+            name: 'appID'
+        }
+    ];
+    const alert = await alertController.create({
+      header: 'Enter App ID to Load',
+      buttons: [{
+        text: 'Cancel'
+      }, {
+        text: 'Load',
+        handler: async (data)=> {   
+            isLoading.value = true; 
+            setTimeout(()=> {
+                loadFromDB(data);       
+            }, 200);                         
+        }
+      }],
+      inputs: alertInputs,
+      mode: 'md'
+    });
+    await alert.present();
+}
+
+const moreOption = async ()=> {
+    const actionSheet = await actionSheetController.create({
+        header: 'More Options',
+        buttons: [{
+            text: "DOWNLOAD CONTENT",
+            handler: downloadContent
+        }, {
+            text: "LOAD QUESTION",
+            handler: loadQuestion
+        }, {
+            text: "DOWNLOAD QUESTIONS",
+            handler: downloadQuestions
+        }],
+        mode: 'md'
+    });
+
+    await actionSheet.present();
 }
 
 </script>
