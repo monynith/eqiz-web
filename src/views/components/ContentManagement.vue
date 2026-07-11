@@ -694,7 +694,10 @@ const downloadQuestions = async ()=> {
             const qs = (contentData.value.question as any)[v.id] && (contentData.value.question as any)[v.id][domain['id']];
             if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
         });
-        folder?.file(`${v.id}.json`, JSON.stringify(question, null, 6));
+        folder?.file(`${v.id}.json`, JSON.stringify({
+            data: question,
+            version: 1
+        }, null, 6));
     })
     try {
         // Generate the zip file

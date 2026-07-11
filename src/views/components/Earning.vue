@@ -98,7 +98,7 @@
                             <td>{{ summary['date'] }}</td>
                             <td>{{ summary['play_store'] ? '$' + Number(summary['play_store']).toFixed(2) : '-' }}</td>
                             <td>{{ summary['app_store'] ? '$' + Number(summary['app_store']).toFixed(2) : '-' }}</td>
-                            <td><b><td>{{ summary['total_app_sale'] ? '$' + Number(summary['total_app_sale']).toFixed(2) : '-' }}</td></b></td>                        
+                            <td><b>{{ summary['total_app_sale'] ? '$' + Number(summary['total_app_sale']).toFixed(2) : '-' }}</b></td>                        
                         </tr>
                     </tbody>
                 </table>
