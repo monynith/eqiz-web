@@ -33,7 +33,7 @@ const menu = async ()=> {
         }, {
             text: 'Content',
             handler: ()=> {
-                // movePage("content")
+                movePage("contents")
             }
         }, {
             text: 'Reports',
