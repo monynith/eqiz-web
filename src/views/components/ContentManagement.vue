@@ -273,7 +273,7 @@ const addQuestion = async (domain: any)=> {
                     (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
                 }
             }
-            console.log(contentData.value.question as any);
+            // console.log(contentData.value.question as any);
             await alert.dismiss();
         });        
     }
@@ -561,6 +561,16 @@ const generateCharId = (length = 8) => {
   return result;
 }
 
+const shortenString = (str: any)=> {
+    return btoa(encodeURIComponent(JSON.stringify(str)));
+}
+
+const deShortenString = (str: string)=> {
+    const decodedString = atob(str);
+    const jsonString = decodeURIComponent(decodedString);                    
+    return JSON.parse(jsonString);
+}
+
 const saveContent = async ()=> {
     // console.log(contentData.value);
     if(isSaving.value == true) return;
@@ -571,7 +581,8 @@ const saveContent = async ()=> {
     const turso = createClient({
         url: dbUrl,
         authToken: dbToken,
-    }); 
+    });     
+
     const metaId = generateCharId();
     let questions = {};
     contentData.value.certifications.forEach((v: any) => {
@@ -582,18 +593,51 @@ const saveContent = async ()=> {
             if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
         });
         (questions as any)[v.id] = question;
-    });
-    // console.log(questions);
+    });    
+
+    // check if existed -> update, not create
+    const meta = await turso.execute({
+        sql: `SELECT id FROM meta WHERE app_id='${contentData.value.appId}'`
+    })    
+    if(meta.rows.length > 0) {
+        await turso.batch([{
+            sql: `UPDATE meta SET 
+                    app_id='${contentData.value.appId}',
+                    app_name='${contentData.value.appName}',
+                    app_ids='${shortenString(contentData.value.certifications.map((v: any) => v.id))}',
+                    certifications='${shortenString(contentData.value.certifications)}',
+                    domains='${shortenString(contentData.value.domains)}',
+                    content='${shortenString(contentData.value.content)}'
+                    WHERE id = '${meta.rows[0].id}'     
+                `
+        }, {
+            sql: `UPDATE questions SET 
+                    json='${shortenString(questions)}'
+                `
+        }])
+        isSaving.value = false;
+        createAgain();
+        const toast = await toastController.create({
+            message: 'Successfully updated.',
+            duration: 2000,
+            position: 'bottom',
+            color: "secondary"
+        });
+
+        await toast.present();
+        return;
+    }    
+
     try {
         await turso.batch([{
             sql: `
                 INSERT INTO meta 
-                VALUES('${metaId}', '${contentData.value.appId}', '${contentData.value.appName}', '${JSON.stringify(contentData.value.certifications.map((v: any) => v.id))}', '${JSON.stringify(contentData.value.certifications)}', '${JSON.stringify(contentData.value.domains)}', '${JSON.stringify(contentData.value.content)}', 'active')
+                VALUES('${metaId}', '${contentData.value.appId}', '${contentData.value.appName}', '${shortenString(contentData.value.certifications.map((v: any) => v.id))}', '${shortenString(contentData.value.certifications)}', '${shortenString(contentData.value.domains)}', '${shortenString(contentData.value.content)}', 'active')
             `
         }, {
             sql: `
                 INSERT INTO questions 
-                VALUES(null, '${metaId}', '${btoa(encodeURIComponent(JSON.stringify(questions)))}')
+                VALUES(null, '${metaId}', '${shortenString(questions)}')
             `
         }]);
         isSaving.value = false;
@@ -842,22 +886,20 @@ const loadFromDB = async (data: any)=> {
             contentData.value = {
                 appId: meta['app_id'],
                 appName: meta['app_name'],
-                certifications: JSON.parse(meta['certifications']), 
-                domains: JSON.parse(meta['domains']),
-                content: JSON.parse(meta['content']) || {},
+                certifications: deShortenString(meta['certifications']), 
+                domains: deShortenString(meta['domains']),
+                content: deShortenString(meta['content']) || {},
                 question: {
                     
                 }
             }            
             selectedCertification.value = {
-                id: JSON.parse(meta['certifications'])[0].id,
-                name: JSON.parse(meta['certifications'])[0].name
+                id: deShortenString(meta['certifications'])[0].id,
+                name: deShortenString(meta['certifications'])[0].name
             }
 
-            // console.log(decodeURIComponent(atob(meta['json'])))        
-            const decodedString = atob(meta['json']);
-            const jsonString = decodeURIComponent(decodedString);                    
-            const questions = JSON.parse(jsonString);
+            // console.log(decodeURIComponent(atob(meta['json'])))                     
+            const questions = deShortenString(meta['json']);
             // console.log(questions);
             contentData.value.certifications.forEach((v: any)=> {
                 // console.log(v);
