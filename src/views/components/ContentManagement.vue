@@ -5,7 +5,7 @@
         <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] == ''" @click="loadContent">{{ isLoading ? 'LOADING...' : 'LOAD CONTENT' }}</p>
     </div> 
     <div id="app-wrapper">   
-        <p id="add-remark-btn" @click="onRemark" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5 }"><ion-icon :icon="contentData['remark'] != '' ? checkmarkDoneSharp : add"></ion-icon>{{ contentData['remark'] != '' ? 'REMARK' : 'ADD REMARK' }}</p>     
+        <p id="add-remark-btn" @click="onRemark" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }"><ion-icon :icon="contentData['remark'] != '' ? checkmarkDoneSharp : add"></ion-icon>{{ contentData['remark'] != '' ? 'REMARK' : 'ADD REMARK' }}</p>     
         <p id="app-id">App ID: <span id="value">{{ contentData['appId'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
         <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>        
         <div id="download-btn-wrapper" v-if="contentData['appId'] != ''">
@@ -22,7 +22,10 @@
     </div>          
     <div id="template-wrapper">
         <div id="left">
-            <p class="label" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5 }">Certification(s) <ion-icon :icon="copyOutline" @click="copyPrompt('cert')" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }"></ion-icon></p>
+            <p class="label" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5 }">Certification(s) 
+                <ion-icon :icon="copyOutline" @click="copyPrompt('cert')" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                <ion-icon :icon="scanOutline" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(contentData['appId'] != '' ? contentData.certifications : '')"></ion-icon>
+            </p>
             <div id="cert-wrapper">
                 <div v-for="(cert, index) in contentData['certifications']" class="cert-items">
                     <span id="ind">{{ index + 1 }}</span>
@@ -42,7 +45,10 @@
             </div>
 
             <br/>
-            <p class="label" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }">Domain(s) <ion-icon :icon="copyOutline" @click="copyPrompt('domain')" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon></p>
+            <p class="label" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }">Domain(s) 
+                <ion-icon :icon="copyOutline" @click="copyPrompt('domain')" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? contentData.domains : '')"></ion-icon>
+            </p>
             <div id="domain-wrapper">
                 <div v-for="(domain, index) in (contentData.domains as any)[selectedCertification['id']]" class="domain-items">
                     <p>{{ domain['id'] }}: {{ domain['name'] || domain['part'] }}</p>
@@ -56,13 +62,28 @@
             <div id="content-wrapper" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }">
                 <p class="inner-title">GLOBAL CONTENT</p>                
                 <div class="add-wrapper">
-                    <p class="add-button" @click="addContent('glossary')"><ion-icon :icon="isContentSet('glossary') ? checkmarkDoneSharp : add"></ion-icon>{{ isContentSet('glossary') ? `Glossary Added (#1)`  : 'Add Glossary (#1)'}}</p><ion-icon :icon="copyOutline" @click="copyPrompt('glossary')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                    <p class="add-button" @click="addContent('glossary')">
+                        <ion-icon :icon="isContentSet('glossary') ? checkmarkDoneSharp : add"></ion-icon>
+                        {{ isContentSet('glossary') ? `Glossary Added (#1)`  : 'Add Glossary (#1)'}}
+                    </p>
+                    <ion-icon :icon="copyOutline" @click="copyPrompt('glossary')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                    <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('glossary') : '', 'javascript', false)"></ion-icon>
                 </div>    
                 <div class="add-wrapper">
-                    <p class="add-button" @click="addContent('cheatsheet')"><ion-icon :icon="isContentSet('cheatsheet') ? checkmarkDoneSharp : add"></ion-icon>{{ isContentSet('cheatsheet') ? 'Cheat Sheet Added (#2)'  : 'Add Cheat Sheet (#2)'}}</p><ion-icon :icon="copyOutline" @click="copyPrompt('cheatsheet')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                    <p class="add-button" @click="addContent('cheatsheet')">
+                        <ion-icon :icon="isContentSet('cheatsheet') ? checkmarkDoneSharp : add"></ion-icon>
+                        {{ isContentSet('cheatsheet') ? 'Cheat Sheet Added (#2)'  : 'Add Cheat Sheet (#2)'}}
+                    </p>
+                    <ion-icon :icon="copyOutline" @click="copyPrompt('cheatsheet')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                    <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('cheatsheet') : '', 'javascript', false)"></ion-icon>
                 </div>   
                 <div class="add-wrapper">
-                    <p class="add-button" @click="addContent('examtip')"><ion-icon :icon="isContentSet('examtip') ? checkmarkDoneSharp : add"></ion-icon>{{ isContentSet('examtip') ? 'Exam Tip Added (#3)'  : 'Add Exam Tip (#3)'}}</p><ion-icon :icon="copyOutline" @click="copyPrompt('examtip')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                    <p class="add-button" @click="addContent('examtip')">
+                        <ion-icon :icon="isContentSet('examtip') ? checkmarkDoneSharp : add"></ion-icon>
+                        {{ isContentSet('examtip') ? 'Exam Tip Added (#3)'  : 'Add Exam Tip (#3)'}}
+                    </p>
+                    <ion-icon :icon="copyOutline" @click="copyPrompt('examtip')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
+                    <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('examtip') : '', 'javascript', false)"></ion-icon>
                 </div>    
                 <div id="completed" v-if="isContentCompleted()">
                     <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
@@ -82,7 +103,12 @@
                 <!-- <p class="inner-title">SELECT DOMAIN<ion-icon :icon="chevronDownOutline"></ion-icon> </p>                 -->
                 <p class="inner-title">LECTURE NOTES</p>                
                 <div class="add-wrapper" v-for="domain in (contentData.domains as any)[selectedCertification.id]">
-                    <p class="add-button" @click="addContent('note', domain)"><ion-icon :icon="isContentSet('note', domain['id']) ? checkmarkDoneSharp : add"></ion-icon>{{ isContentSet('note', domain['id']) ?  `Part ${domain['id']}: Added`  : `Part ${domain['id']}: ${domain['part'] || domain['name']}`}}</p><ion-icon :icon="copyOutline" @click="copyPrompt('note', domain)" id="copy"></ion-icon>
+                    <p class="add-button" @click="addContent('note', domain)">
+                        <ion-icon :icon="isContentSet('note', domain['id']) ? checkmarkDoneSharp : add"></ion-icon>
+                        {{ isContentSet('note', domain['id']) ?  `Part ${domain['id']}: Added`  : `Part ${domain['id']}: ${domain['part'] || domain['name']}`}}
+                    </p>
+                    <ion-icon :icon="copyOutline" @click="copyPrompt('note', domain)" id="copy"></ion-icon>
+                    <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('note', domain['id']) : '', 'html', false)"></ion-icon>
                 </div>    
                 <div id="completed" v-if="isContentCompleted('note')">
                     <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
@@ -95,7 +121,10 @@
             <ion-toggle mode="md" id="question-toggle" @click="toggleNotifications" v-if="(contentData.domains as any)[selectedCertification.id] && (contentData.domains as any)[selectedCertification.id].length > 0">CALCULATION?</ion-toggle><br />
             <div id="question-wrapper">
                 <div v-for="domain in (contentData.domains as any)[selectedCertification.id]" class="question-title">
-                    <p>{{ `Part ${domain['id']}: ${domain['part'] || domain['name']}` }}<ion-icon :icon="copyOutline" @click="copyPrompt('question', domain)" id="copy"></ion-icon></p>
+                    <p>{{ `Part ${domain['id']}: ${domain['part'] || domain['name']}` }}
+                        <ion-icon :icon="copyOutline" @click="copyPrompt('question', domain)" id="copy"></ion-icon>
+                        <ion-icon :icon="scanOutline" class="open-icon" @click="openText((contentData.question as any)[selectedCertification.id] && (contentData.question as any)[selectedCertification.id][domain['id']] ? (contentData.question as any)[selectedCertification.id][domain['id']] : '', 'json')"></ion-icon>
+                    </p>
 
                     <div id="content-wrapper" class="p-b-0">
                         <p class="inner-title m-b-0">QUESTION BATCHES</p>                
@@ -127,7 +156,7 @@ import glossary from '@/assets/prompts/glossary';
 import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle } from '@ionic/vue';
-import { add, attachOutline, attachSharp, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, copyOutline, createOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
+import { add, attachOutline, attachSharp, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, copyOutline, createOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, openOutline, scanOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
@@ -482,6 +511,11 @@ const isContentSet = (type: string, domainId?: any)=> {
     return (contentData.value.content as any)[selectedCertification.value['id']] && (contentData.value.content as any)[selectedCertification.value['id']][type]    
 }
 
+const getContent = (type: string, domainId?: any)=> {
+    if(type == 'note') return (contentData.value.content as any)[selectedCertification.value['id']] && (contentData.value.content as any)[selectedCertification.value['id']][type] && (contentData.value.content as any)[selectedCertification.value['id']][type][domainId] ? (contentData.value.content as any)[selectedCertification.value['id']][type][domainId] : ''
+    return (contentData.value.content as any)[selectedCertification.value['id']] && (contentData.value.content as any)[selectedCertification.value['id']][type] ? (contentData.value.content as any)[selectedCertification.value['id']][type] : ''  
+}
+
 const isContentCompleted = (type?: string)=> {    
     if(!(contentData.value.content as any)[selectedCertification.value['id']]) return false;    
     if(type == 'note') {
@@ -818,7 +852,7 @@ const loadMeta = async ()=> {
                 question: {
                     
                 },
-                remark: meta['remark']
+                remark: meta['remark'] || ''
             }
             selectedCertification.value = {
                 id: meta['certifications'][0].id,
@@ -1053,6 +1087,109 @@ const onRemark = async ()=> {
     }
 
     await alert.present();
+}
+
+const openText = (text: any, type?: string, stringify?: boolean)=> {
+    if(text == '') return;
+    // const jsonString = JSON.stringify(json, null, 6); 
+    // const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
+
+    // window.open(URL.createObjectURL(blob), '_blank');
+    const initialContent = text
+
+    const mode = type || "json"; // Change to "markdown" if editing markdown!
+
+    // 1. Open the blank window
+    const newWindow:any = window.open('', '_blank');
+
+    if (newWindow) {
+        // 2. Build the editor interface safely
+        newWindow.document.write(`
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+            <meta charset="UTF-8">
+            <title>Live Editor</title>
+            <!-- Load Google Sans Code Font -->
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+            <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
+            <style>
+                body { 
+                    margin: 0; padding: 0; height: 100vh; 
+                    display: flex; flex-direction: column; 
+                    overflow: hidden; font-family: system-ui, sans-serif; 
+                    background: #1e1e1e; color: #fff;
+                }
+                #toolbar { 
+                    height: 45px; background: #181818; 
+                    display: flex; align-items: center; 
+                    padding: 0 15px; border-bottom: 1px solid #2d2d2d; 
+                    gap: 10px;
+                }
+                #editor { 
+                    flex: 1; width: 100%; height: calc(100vh - 45px); 
+                }
+                button { 
+                    background: #3c3c3c; color: white; border: none; 
+                    padding: 6px 12px; border-radius: 4px; cursor: pointer; 
+                    font-size: 13px; font-weight: 500; transition: background 0.2s;
+                }
+                button:hover { background: #505050; }
+                #copy-success { font-size: 12px; color: #4caf50; display: none; }
+            </style>
+            <!-- Load Ace Editor via CDN safely -->
+            ` + '<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></' + 'script>' + `
+            </head>
+            <body>
+            <div id="toolbar">
+                <span style="font-weight: bold; font-size: 13px; color: #858585; text-transform: uppercase; margin-right: 10px;">Editor</span>
+                <button id="btn-copy">Copy Code</button>
+                <span id="copy-success">Copied!</span>
+            </div>
+            <div id="editor"></div>
+            </body>
+            </html>
+        `);
+
+        newWindow.document.close();
+
+        // 3. Initialize Ace Editor once loaded
+        newWindow.onload = function() {
+            if (newWindow.ace) {
+            const editor = newWindow.ace.edit(newWindow.document.getElementById('editor'));
+
+            // Set to VS Code / Monokai Style
+            editor.setTheme("ace/theme/dracula");
+            editor.session.setMode("ace/mode/" + mode);
+
+            editor.session.setUseWorker(false);
+            editor.setValue(stringify == false ? initialContent : JSON.stringify(initialContent, null, 6), -1); // -1 resets the cursor selection
+            
+            editor.setOptions({
+                fontFamily: "'Google Sans Code', monospace", // <- Applies the font to the editor lines
+                fontSize: "14px",
+                showPrintMargin: false,
+                enableBasicAutocompletion: true,
+                useSoftTabs: true,
+                tabSize: 2
+            });
+
+            // --- Button Logic ---
+            
+            // Copy to clipboard
+            newWindow.document.getElementById('btn-copy').addEventListener('click', () => {
+                const currentCode = editor.getValue();
+                newWindow.navigator.clipboard.writeText(currentCode).then(() => {
+                const successSpan = newWindow.document.getElementById('copy-success');
+                successSpan.style.display = 'inline';
+                setTimeout(() => { successSpan.style.display = 'none'; }, 2000);
+                });
+            });
+
+            }
+        };
+    }
 }
 
 </script>
