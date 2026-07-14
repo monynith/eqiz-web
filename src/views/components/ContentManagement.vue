@@ -5,7 +5,12 @@
         <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] == ''" @click="loadContent">{{ isLoading ? 'LOADING...' : 'LOAD CONTENT' }}</p>
     </div> 
     <div id="app-wrapper">   
-        <p id="add-remark-btn" @click="onRemark" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }"><ion-icon :icon="contentData['remark'] != '' ? checkmarkDoneSharp : add"></ion-icon>{{ contentData['remark'] != '' ? 'REMARK' : 'ADD REMARK' }}</p>     
+        <p id="add-remark-btn" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }">
+            <ion-icon :icon="contentData['remark'] != '' ? checkmarkDoneSharp : add" @click="onRemark"></ion-icon>
+            <span @click="onRemark">{{ contentData['remark'] != '' ? 'REMARK' : 'ADD REMARK' }}</span>
+            <ion-icon :icon="scanOutline" class="open-icon" style="font-size: 0.7rem;" v-if="contentData['remark'] != ''" @click="openText(contentData.remark, 'markdown', false)"></ion-icon>
+            <ion-icon :icon="documentTextOutline" class="open-icon" style="font-size: 0.7rem; margin-left: 2px;" v-if="contentData['remark'] != ''" @click="viewMD"></ion-icon>            
+        </p>     
         <p id="app-id">App ID: <span id="value">{{ contentData['appId'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
         <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>        
         <div id="download-btn-wrapper" v-if="contentData['appId'] != ''">
@@ -156,7 +161,7 @@ import glossary from '@/assets/prompts/glossary';
 import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle } from '@ionic/vue';
-import { add, attachOutline, attachSharp, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, copyOutline, createOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, openOutline, scanOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
+import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, openOutline, scanOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
@@ -1012,8 +1017,7 @@ const moreOption = async ()=> {
     await actionSheet.present();
 }
 
-const onRemark = async ()=> {
-    if(contentData.value.appId == '') return;
+const viewMD = ()=> {
     if(contentData.value.remark != '') {
         const text = contentData.value.remark;
         const newWindow = window.open('', '_blank');
@@ -1049,6 +1053,10 @@ const onRemark = async ()=> {
         }
         return;
     }
+}
+
+const onRemark = async ()=> {
+    if(contentData.value.appId == '') return;    
     const alertInputs: any = [
         {
             placeholder: 'Paste Remark Text or Type In',
