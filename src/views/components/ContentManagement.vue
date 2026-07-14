@@ -4,7 +4,8 @@
         <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] != ''" @click="saveContent">{{ isSaving ? 'SAVING...' : 'SAVE CONTENT' }}</p>
         <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] == ''" @click="loadContent">{{ isLoading ? 'LOADING...' : 'LOAD CONTENT' }}</p>
     </div> 
-    <div id="app-wrapper">        
+    <div id="app-wrapper">   
+        <p id="add-remark-btn" @click="onRemark" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5 }"><ion-icon :icon="contentData['remark'] != '' ? checkmarkDoneSharp : add"></ion-icon>{{ contentData['remark'] != '' ? 'REMARK' : 'ADD REMARK' }}</p>     
         <p id="app-id">App ID: <span id="value">{{ contentData['appId'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
         <p id="app-name">App Name: <span id="value">{{ contentData['appName'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>        
         <div id="download-btn-wrapper" v-if="contentData['appId'] != ''">
@@ -18,7 +19,7 @@
             <span class="create-btn-standalone" @click="loadMeta()">LOAD META (FILE)<ion-icon :icon="attachOutline" style="position: relative; top: 2px;"></ion-icon></span>            
         </div>  
         <!-- <div style="height: 17px;"></div>    -->
-    </div>      
+    </div>          
     <div id="template-wrapper">
         <div id="left">
             <p class="label" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5 }">Certification(s) <ion-icon :icon="copyOutline" @click="copyPrompt('cert')" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }"></ion-icon></p>
@@ -148,7 +149,8 @@ const contentData = ref({
     },
     question: {
         
-    }
+    },
+    remark: ''
 })
 
 const isDownloadable = ref(false);
@@ -566,6 +568,7 @@ const shortenString = (str: any)=> {
 }
 
 const deShortenString = (str: string)=> {
+    if(!str || str == '') return '';
     const decodedString = atob(str);
     const jsonString = decodeURIComponent(decodedString);                    
     return JSON.parse(jsonString);
@@ -607,7 +610,8 @@ const saveContent = async ()=> {
                     app_ids='${shortenString(contentData.value.certifications.map((v: any) => v.id))}',
                     certifications='${shortenString(contentData.value.certifications)}',
                     domains='${shortenString(contentData.value.domains)}',
-                    content='${shortenString(contentData.value.content)}'
+                    content='${shortenString(contentData.value.content)}',
+                    remark='${shortenString(contentData.value.remark)}'
                     WHERE id = '${meta.rows[0].id}'     
                 `
         }, {
@@ -632,7 +636,7 @@ const saveContent = async ()=> {
         await turso.batch([{
             sql: `
                 INSERT INTO meta 
-                VALUES('${metaId}', '${contentData.value.appId}', '${contentData.value.appName}', '${shortenString(contentData.value.certifications.map((v: any) => v.id))}', '${shortenString(contentData.value.certifications)}', '${shortenString(contentData.value.domains)}', '${shortenString(contentData.value.content)}', 'active')
+                VALUES('${metaId}', '${contentData.value.appId}', '${contentData.value.appName}', '${shortenString(contentData.value.certifications.map((v: any) => v.id))}', '${shortenString(contentData.value.certifications)}', '${shortenString(contentData.value.domains)}', '${shortenString(contentData.value.content)}', 'active', '${shortenString(contentData.value.remark)}')
             `
         }, {
             sql: `
@@ -781,7 +785,8 @@ const createAgain = ()=> {
         },
         question: {
             
-        }
+        }, 
+        remark: ''
     };
     selectedCertification.value = {
         id: '',
@@ -812,7 +817,8 @@ const loadMeta = async ()=> {
                 content: meta['content'] || {},
                 question: {
                     
-                }
+                },
+                remark: meta['remark']
             }
             selectedCertification.value = {
                 id: meta['certifications'][0].id,
@@ -894,7 +900,8 @@ const loadFromDB = async (data: any)=> {
                 content: deShortenString(meta['content']) || {},
                 question: {
                     
-                }
+                },
+                remark: deShortenString(meta['remark'])
             }            
             selectedCertification.value = {
                 id: deShortenString(meta['certifications'])[0].id,
@@ -969,6 +976,83 @@ const moreOption = async ()=> {
     });
 
     await actionSheet.present();
+}
+
+const onRemark = async ()=> {
+    if(contentData.value.appId == '') return;
+    if(contentData.value.remark != '') {
+        const text = contentData.value.remark;
+        const newWindow = window.open('', '_blank');
+
+        if (newWindow) {            
+            newWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="en">
+                <head>
+                <meta charset="UTF-8">
+                <title>Markdown Viewer</title>
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
+                ` + '<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></' + 'script>' + `
+                <style>
+                    body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
+                    @media (max-width: 767px) { body { padding: 15px; } }
+                </style>
+                </head>
+                <body class="markdown-body">
+                <div id="content">Loading...</div>
+                </body>
+                </html>
+            `);
+            
+            newWindow.document.close();
+
+            // 3. Wait for the dependencies (marked.js) to load, then render the Markdown safely
+            newWindow.onload = function() {
+                if ((newWindow as any)['marked']) {
+                    (newWindow.document.getElementById('content') as any).innerHTML = (newWindow as any)['marked'].parse(text);
+                }
+            };
+        }
+        return;
+    }
+    const alertInputs: any = [
+        {
+            placeholder: 'Paste Remark Text or Type In',
+            name: 'json',
+            type: 'textarea',
+            attributes: {
+               id: 'alert-paste-field'
+            }
+        }
+    ];
+    const alert = await alertController.create({
+      header: 'Remark',
+      buttons: [{
+        text: 'Cancel'
+      }, {
+        text: 'Set',
+        handler: async (data)=> {      
+            if(data.json) {                
+                contentData.value.remark = data.json;
+            }            
+        }
+      }],
+      inputs: alertInputs,
+      mode: 'md'
+    });
+
+    const inputEl = document.getElementById('alert-paste-field') as HTMLInputElement;
+    if (inputEl) {
+        inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
+            const pastedData = event.clipboardData?.getData('text');
+            if(pastedData && pastedData != ''){                                
+                contentData.value.remark = pastedData;
+            }
+            await alert.dismiss();       
+        });
+    }
+
+    await alert.present();
 }
 
 </script>

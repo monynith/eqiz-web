@@ -395,3 +395,19 @@
         margin-top: 0px;
     }
 }
+
+#add-remark-btn {
+    font-size: 0.8rem;
+    color: palevioletred;
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    margin-top: 0px;
+    text-decoration: underline;
+    justify-content: flex-end;
+}
+
+#add-remark-btn ion-icon {
+    margin-right: 3px;
+    font-size: 0.9rem;
+}
