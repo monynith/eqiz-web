@@ -656,6 +656,7 @@ const saveContent = async ()=> {
         }, {
             sql: `UPDATE questions SET 
                     json='${shortenString(questions)}'
+                    WHERE id = '${meta.rows[0].id}' 
                 `
         }])
         isSaving.value = false;
