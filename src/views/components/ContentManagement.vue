@@ -577,7 +577,7 @@ const validateQuestions = (questions: any, domain: any)=> {
             v['question'] && 
             v['question'].length >= 40 &&
             v['question'].indexOf('YANG') <= -1 &&
-            v['explanation'].length >= 50 &&
+            v['explanation'] && v['explanation'].length >= 50 &&
             v['question'].indexOf('completion of question') <= -1 &&
             v['question'].indexOf('Which of the following summarize the') <= -1 &&
             v['standard'] &&
@@ -656,7 +656,7 @@ const saveContent = async ()=> {
         }, {
             sql: `UPDATE questions SET 
                     json='${shortenString(questions)}'
-                    WHERE id = '${meta.rows[0].id}' 
+                    WHERE meta_id = '${meta.rows[0].id}' 
                 `
         }])
         isSaving.value = false;
