@@ -739,7 +739,12 @@ const downloadQuestions = async ()=> {
             if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
         });
         folder?.file(`${v.id}.json`, JSON.stringify({
-            data: question,
+            data: question.map((v: any)=> {
+                return {
+                    ...v,
+                    question: v['question'].split('\n1.')[0]
+                }
+            }),
             version: 1
         }, null, 6));
     })
