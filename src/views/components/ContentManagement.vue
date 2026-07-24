@@ -452,7 +452,7 @@ const removeCert = (idx: number, type: string)=> {
 }
 
 const copyPrompt = (type: string, domain?: any) => {
-    if(contentData.value.certifications.length <=0) return;
+    if(contentData.value.certifications.length <=0 && type != 'cert') return;
     let str = "";
     if(type == 'cert') str = certification.replaceAll('$RP{app-name}', contentData.value.appName);
     if(type == 'domain') {
@@ -948,10 +948,12 @@ const loadFromDB = async (data: any)=> {
                 },
                 remark: deShortenString(meta['remark'])
             }            
-            selectedCertification.value = {
-                id: deShortenString(meta['certifications'])[0].id,
-                name: deShortenString(meta['certifications'])[0].name
-            }
+            if(deShortenString(meta['certifications'])[0]) {
+                selectedCertification.value = {
+                    id: deShortenString(meta['certifications'])[0].id,
+                    name: deShortenString(meta['certifications'])[0].name
+                }
+            }            
 
             // console.log(decodeURIComponent(atob(meta['json'])))                     
             const questions = deShortenString(meta['json']);
