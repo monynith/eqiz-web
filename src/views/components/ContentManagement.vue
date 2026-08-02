@@ -742,7 +742,7 @@ const downloadQuestions = async ()=> {
             data: question.map((v: any)=> {
                 return {
                     ...v,
-                    question: v['question'].split('\n1.')[0].split('\n\n-')[0].split(' (')[0]
+                    question: v['question'].substring(0, v['question'].lastIndexOf('?') + 1).trim()
                 }
             }),
             version: 1
