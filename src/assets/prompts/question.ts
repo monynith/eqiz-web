@@ -11,28 +11,36 @@ To maintain strict technical rigor, **do not write narrative scenario questions.
 
 - **JSON Schema:** Strictly \`{"data": []}\`. Fields: \`id\`, \`standard\`, \`question\`, \`answer-1\`, \`answer-2\`, \`answer-3\`, \`answer-4\`, \`correct\`, \`explanation\`. No duplicate keys are allowed within an object block.
 - **Standard Field:** Must strictly match the standard string provided by the user for every entry.
-- **Zero-Digit Answer Policy:** Prohibit any answer choice from being a string of digits (e.g., "1, 2") or comma-separated numbers. Every choice must be a unique, descriptive text string.
+- **Zero-Digit Answer Policy:** Prohibit any answer choice from being a string of digits (e.g., "1, 2") or comma-separated numbers. Every choice must be a unique, descriptive text string. This applies identically to single-selection AND multi-selection questions — see Section 2A below for how multi-selection questions must be structured to comply.
 - **Text Formatting:**
     - Use \`\n\` inside the \`question\` field only when breaking up lines formally.
     - Strictly **zero** \`\n\` in \`answer-x\` or \`explanation\` fields.
-    - **Strict Prohibition on LaTeX/MathJax:** Do not use any LaTeX or MathJax symbols (e.g., \`$\`, \`$$\`, \`\(\`, \`\)\`, \`\frac\`, \`\sigma\`, \`\sqrt\`, \`\sum\`) in **any** field. All mathematical relationships must be described in plain English or standard keyboard characters (e.g., use "beta" not \`\beta\`, "sum of squares" not \`\sum\`, "square root" not \`\sqrt\`).
+    - **Strict Prohibition on LaTeX/MathJax:** Do not use any LaTeX or MathJax symbols (e.g., \`$\`, \`$$\`, \`(\`, \`)\`, \`frac\`, \`sigma\`, \`sqrt\`, \`sum\`) in **any** field. All mathematical relationships must be described in plain English or standard keyboard characters (e.g., use "beta" not the symbol, "sum of squares" not the symbol, "square root" not the symbol).
 - **No mention of answers in question field.**
 
 
 
 #### **2. Mandatory Sequential Distribution Matrix**
 The output **MUST** strictly transition its internal schema architecture at the exact relative ID boundaries defined below. The transition from single to multiple combinations must scale upward precisely:
+
 | Block | Relative ID Range | Question Type | Correct Field Format Requirement | Absolute Count |
-
 |-------|------------------|---------------|--------------------------------|----------------|
-
 | **1** | **N to N+79** | Single Selection | Exactly **1** number digit (e.g., \`"1"\`) | **80 Questions** |
-
 | **2** | **N+80 to N+89** | Multiple Selection (2) | Exactly **2** comma-separated digits (e.g., \`"1,2"\`) | **10 Questions** |
-
 | **3** | **N+90 to N+97** | Multiple Selection (3) | Exactly **3** comma-separated digits (e.g., \`"1,2,3"\`) | **8 Questions** |
-
 | **4** | **N+98 to N+99** | Multiple Selection (4) | Exactly **4** comma-separated digits (\`"1,2,3,4"\`) | **2 Questions** |
+
+**Important distinction:** the comma-separated digit format above applies ONLY to the \`correct\` field, which is metadata identifying which answer-x fields are right. It never applies to \`answer-1\` through \`answer-4\` themselves, in any block. See Section 2A.
+
+#### **2A. Mandatory Structure for Multi-Selection Questions (Blocks 2, 3, 4)**
+
+This is a hard structural rule, not a style preference. For every multi-selection question:
+
+- **The question stem must NOT enumerate numbered sub-statements** (i.e., do not write "1. ... 2. ... 3. ... 4. ..." inside the \`question\` field for a multi-select item). The question must be a single, direct interrogative sentence, exactly as required for single-selection questions in Section 4.
+- **Each of \`answer-1\` through \`answer-4\` must be one complete, standalone, descriptive statement** — a full candidate answer in its own right, not a fragment or a reference back to a numbered list in the question.
+- **The \`correct\` field is pure metadata**, listing which of \`answer-1\`–\`answer-4\` are correct (e.g., \`"1,3"\` means answer-1 and answer-3 are both correct). It is never rendered as an answer choice itself and must never appear as the *content* of any \`answer-x\` field.
+- **Prohibited pattern (do not produce this):** a question listing four numbered statements, with \`answer-1\` through \`answer-4\` each being a digit-combination like \`"1,2"\`, \`"2,3"\`, \`"3,4"\`, \`"1,4"\` referencing those statements. This is a disguised violation of the Zero-Digit Answer Policy and is strictly forbidden even though the characters are technically inside a text string.
+- Distractors for multi-select questions should be plausible, individually complete statements that a test-taker could mistake for correct — not partial fragments designed to be combined.
 
 
 
@@ -41,7 +49,7 @@ The output **MUST** strictly transition its internal schema architecture at the 
 To prevent pattern fatigue from dropping the final block requirements, you must strictly follow this structural design shift for the last two entries:
 
 - **Factual Scope:** The question text must evaluate holistic industry systems, comprehensive regulatory frameworks, or multi-tiered corporate parameters where all 4 listed attributes are fundamentally true, valid, and interconnected components.
-- **Format Sync:** Options \`answer-1\`, \`answer-2\`, \`answer-3\`, and \`answer-4\` must serve as distinct, accurate factual pillars. The \`correct\` field for items **N+98** and **N+99** must read exactly \`"1,2,3,4"\` with zero structural variance or exception.
+- **Format Sync:** Options \`answer-1\`, \`answer-2\`, \`answer-3\`, and \`answer-4\` must each be a distinct, accurate, standalone factual statement (per Section 2A — never a digit combination). The \`correct\` field for items **N+98** and **N+99** must read exactly \`"1,2,3,4"\` with zero structural variance or exception.
 
 
 
@@ -53,9 +61,8 @@ To prevent pattern fatigue from dropping the final block requirements, you must 
 - **Anti-Copy Safeguard:** Absolutely zero copy-pasting or minimal text alterations from previous sets. Every problem, option array, and context must evaluate distinct factual configurations, structural laws, and industry frameworks.
 - **Clean Questions:** Strictly prohibit any variable text fragments, repetitive template suffixes, or serial identifiers from all fields. Every question must be rendered explicitly with independent vocabulary and diverse distractors.
 - **Hint Removal:** Strictly remove words indicating the number of correct choices (e.g., "two," "three," "four," "select," "multiple") from the question text.
-- **Unique Options:** Eliminate "All of the above," "None of the above," or numbered combinations (e.g., "1 and 2 only").
+- **Unique Options:** Eliminate "All of the above," "None of the above," or numbered combinations (e.g., "1 and 2 only", "1,2", "3,4"). This applies to every \`answer-x\` field in every block without exception — see Section 2A for the required alternative structure in multi-select blocks.
 - **Explanations:** Provide high-context detail explaining the business logic or regulatory rule. Do not use option labels (e.g., avoid "Option 1 is correct..."). **Do not use LaTeX or MathJax in explanations.**
-
 
 $RP{comment-start}
 - **Calculation Question Rule:**
@@ -76,10 +83,12 @@ $RP{comment-start}
     - This ensures clarity, consistency, and proper parsing of calculation answers.
 $RP{comment-end}
 
+
 #### **5. Strict Prohibitions**
 - **No mention of:** "Phnom Penh", "Cambodia", "2026", "NoDB", or "Eqiz".
-- **No LaTeX or MathJax:** Absolutely no instances of \`$\`, \`$$\`, \`\(\`, \`\)\`, \`\begin\`, \`\frac\`, or any backslash-prefixed mathematical commands in \`question\`, \`answer-x\`, or \`explanation\`.
+- **No LaTeX or MathJax:** Absolutely no instances of \`$\`, \`$$\`, \`(\`, \`)\`, backslash-prefixed commands, or any mathematical markup commands in \`question\`, \`answer-x\`, or \`explanation\`.
 - **No Truncation:** Provide the full 100 questions in one continuous code block. No partial or sample lists.
+- **No digit-combination strings anywhere in \`answer-1\` through \`answer-4\`, in any block** — this includes patterns like \`"1,2"\`, \`"2, 3"\`, \`"1 and 4"\`. These strings are only ever valid inside the \`correct\` field.
 
 #### **6. Programmatic Final Count Verification**
 Before writing the data block, execute a final internal verification count of the \`correct\` metadata structure to confirm mathematical compliance:
@@ -88,7 +97,7 @@ Before writing the data block, execute a final internal verification count of th
 - Is the count of two-digit strings (\`"x,y"\`) exactly **10**?
 - Is the count of three-digit strings (\`"x,y,z"\`) exactly **8**?
 - Is the count of four-digit strings (\`"1,2,3,4"\`) exactly **2**?
+- **Additionally: scan every \`answer-1\` through \`answer-4\` field across all 100 entries and confirm none of them contain a digit-only or comma-separated-digit string.** If any are found, rewrite those entries so each answer-x is a full descriptive statement per Section 2A.
 
-*If Block 4 contains any single-selection parameters or fails to output items N+98 and N+99 with precisely four correct indicators, discard the tail buffer array and rewrite the final block elements to ensure perfect architectural compliance.*
-
-`
+*If Block 4 contains any single-selection parameters, fails to output items N+98 and N+99 with precisely four correct indicators, or contains any answer-x field with a digit-combination string, discard the tail buffer array and rewrite the final block elements to ensure perfect architectural compliance.*
+`;
