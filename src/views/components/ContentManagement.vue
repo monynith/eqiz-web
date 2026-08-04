@@ -305,8 +305,8 @@ const addQuestion = async (domain: any)=> {
                         str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
                     }         
                     
-                    const model = localStorage.get("GEMINI_MODEL");
-                    const key = localStorage.get("GEMINI_KEY");
+                    const model = localStorage.getItem("GEMINI_MODEL");
+                    const key = localStorage.getItem("GEMINI_KEY") || '';
 
                     try {
                         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
