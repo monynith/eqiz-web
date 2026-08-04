@@ -303,14 +303,17 @@ const addQuestion = async (domain: any)=> {
                         str = str.replaceAll('$RP{comment-start}', '<!--').replaceAll('$RP{comment-end}', '-->');
                     } else {
                         str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
-                    }                
+                    }         
+                    
+                    const model = localStorage.get("GEMINI_MODEL");
+                    const key = localStorage.get("GEMINI_KEY");
 
                     try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${import.meta.env.VITE_GEMINI_MODEL}:generateContent`, {
+                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
                             method: "POST", 
                             headers: {
                                 "Content-Type": "application/json",
-                                "x-goog-api-key": import.meta.env.VITE_GEMINI_KEY
+                                "x-goog-api-key": key
                             },
                             body: JSON.stringify({
                                 "contents": [
