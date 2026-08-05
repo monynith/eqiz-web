@@ -434,7 +434,7 @@ const addQuestion = async (domain: any)=> {
                         console.log(error);
                         await loading.dismiss();
                         const alert = await alertController.create({
-                            header: 'Error from Ling AI',                        
+                            header: 'Error from OpenRouter',                        
                             message: error,
                             buttons: ['Ok'],
                         });
@@ -456,7 +456,8 @@ const addQuestion = async (domain: any)=> {
         inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
             const pastedData = event.clipboardData?.getData('text');
             if (pastedData && pastedData != '') {
-                const result = JSON.parse(pastedData);
+                const jsonString = jsonrepair(pastedData); 
+                const result = JSON.parse(jsonString);
                 let questions = result['data'] || result;
                 // console.log(questions);
                 if (questions.length > 0) {    
