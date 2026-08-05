@@ -456,8 +456,7 @@ const addQuestion = async (domain: any)=> {
         inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
             const pastedData = event.clipboardData?.getData('text');
             if (pastedData && pastedData != '') {
-                const jsonString = jsonrepair(pastedData); 
-                const result = JSON.parse(jsonString);
+                const result = JSON.parse(pastedData);
                 let questions = result['data'] || result;
                 // console.log(questions);
                 if (questions.length > 0) {    
