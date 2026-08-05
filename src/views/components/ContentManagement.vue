@@ -166,6 +166,7 @@ import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
 import { jsonrepair } from 'jsonrepair';
+import OpenAI from "openai"
 
 const isSaving = ref(false);
 const isLoading = ref(false);
@@ -292,7 +293,7 @@ const addQuestion = async (domain: any)=> {
             handler: async ()=> {
                 setTimeout(async ()=> {
                     const loading = await loadingController.create({
-                        message: 'Getting from Gemini...',    
+                        message: 'Generating...',    
                         duration: 1000 * 120                
                     });
 
@@ -374,11 +375,11 @@ const addQuestion = async (domain: any)=> {
 
             },        
         }, {
-            text: 'Ling AI',
+            text: 'Open Router',
             handler: async ()=> {
                 setTimeout(async ()=> {
                     const loading = await loadingController.create({
-                        message: 'Getting from Ling AI...', 
+                        message: 'Generating...', 
                         duration: 1000 * 120                   
                     });
 
@@ -392,38 +393,28 @@ const addQuestion = async (domain: any)=> {
                         str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
                     }         
                     
-                    // const model = localStorage.getItem("GEMINI_MODEL");
+                    const model = localStorage.getItem("OPENROUTER_MODEL") || '';
                     const key = localStorage.getItem("OPENROUTER_KEY") || '';
 
                     try {
-                        const response = await fetch(`https://api.kilo.ai/api/gateway/chat/completions`, {
-                            method: "POST", 
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Authentication": `Bearer ${key}`
-                            },
-                            body: JSON.stringify({                                
-                                "model": "inclusionai/ling-3.0-flash:free",
-                                "messages": [
-                                    {
-                                        "role": "user",
-                                        "content": `${JSON.stringify(str)}`
-                                    }
-                                ]                                
-                            }) 
-                        });
+                        const client = new OpenAI({
+                            apiKey: key,
+                            baseURL: "https://openrouter.ai/api/v1",
+                            dangerouslyAllowBrowser: true
+                        })
+
+                        const response = await client.chat.completions.create({
+                            model,
+                            messages: [                                
+                                { role: "user", content: `${JSON.stringify(str)}` },
+                            ],
+                        })                        
 
                         await loading.dismiss();
 
-                        // Catches 400, 404, 500, etc.
-                        if (!response.ok) {           
-                            // console.log(await response.text())                   
-                            const error = await response.json();                         
-                            throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
-                        }
-
-                        const result = await response.json();                                                
-                        const json = result['choices'] && result['choices'][0] && result['choices'][0]['message'] && result['choices'][0]['message']['content'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';
+                        const result = response;  
+                        // console.log(result);                                              
+                        const json = result['choices'] && result['choices'][0] && result['choices'][0]['message'] && result['choices'][0]['message']['content'] && result['choices'][0]['message']['content'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';
                         if (json && json != '') {
                             const jsonString = jsonrepair(json); 
                             const result = JSON.parse(jsonString);
