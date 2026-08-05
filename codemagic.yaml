@@ -2,7 +2,7 @@ workflows:
   android-debug:
     environment:      
       node: 22.18.0
-      java: 21.0.7
+      java: 21.0.9
     scripts:
       - name: Npm Install
         script: npm i
@@ -27,7 +27,7 @@ workflows:
   android-release:
     environment:      
       node: 22.18.0
-      java: 21.0.7
+      java: 21.0.9
     scripts:
       - name: Npm Install
         script: npm i
@@ -52,7 +52,7 @@ workflows:
   android-bundle:
     environment:      
       node: 22.18.0
-      java: 21.0.7
+      java: 21.0.9
     scripts:
       - name: Npm Install
         script: npm i
