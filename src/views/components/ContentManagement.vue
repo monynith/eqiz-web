@@ -292,7 +292,8 @@ const addQuestion = async (domain: any)=> {
             handler: async ()=> {
                 setTimeout(async ()=> {
                     const loading = await loadingController.create({
-                        message: 'Getting from Gemini...',                    
+                        message: 'Getting from Gemini...',    
+                        duration: 1000 * 120                
                     });
 
                     loading.present();   
@@ -363,6 +364,86 @@ const addQuestion = async (domain: any)=> {
                         await loading.dismiss();
                         const alert = await alertController.create({
                             header: 'Error from Gemini',                        
+                            message: error,
+                            buttons: ['Ok'],
+                        });
+
+                        await alert.present();
+                    }
+                }, 350);                
+
+            },        
+        }, {
+            text: 'Ling AI',
+            handler: async ()=> {
+                setTimeout(async ()=> {
+                    const loading = await loadingController.create({
+                        message: 'Getting from Ling AI...', 
+                        duration: 1000 * 120                   
+                    });
+
+                    loading.present();   
+                    
+                    let str = '';
+                    str = question.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']).replaceAll('$RP{domain-name}', domain['part'] || domain['name']);        
+                    if(calculation.value == false) {
+                        str = str.replaceAll('$RP{comment-start}', '<!--').replaceAll('$RP{comment-end}', '-->');
+                    } else {
+                        str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
+                    }         
+                    
+                    // const model = localStorage.getItem("GEMINI_MODEL");
+                    const key = localStorage.getItem("OPENROUTER_KEY") || '';
+
+                    try {
+                        const response = await fetch(`https://api.kilo.ai/api/gateway/chat/completions`, {
+                            method: "POST", 
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authentication": `Bearer ${key}`
+                            },
+                            body: JSON.stringify({                                
+                                "model": "inclusionai/ling-3.0-flash:free",
+                                "messages": [
+                                    {
+                                        "role": "user",
+                                        "content": `${JSON.stringify(str)}`
+                                    }
+                                ]                                
+                            }) 
+                        });
+
+                        await loading.dismiss();
+
+                        // Catches 400, 404, 500, etc.
+                        if (!response.ok) {           
+                            // console.log(await response.text())                   
+                            const error = await response.json();                         
+                            throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
+                        }
+
+                        const result = await response.json();                                                
+                        const json = result['choices'] && result['choices'][0] && result['choices'][0]['message'] && result['choices'][0]['message']['content'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';
+                        if (json && json != '') {
+                            const jsonString = jsonrepair(json); 
+                            const result = JSON.parse(jsonString);
+                            let questions = result['data'] || result;
+                            // console.log(questions);
+                            if (questions.length > 0) {    
+                                if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
+                                if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
+                                const filterQuestions = validateQuestions(questions, domain);
+                                // console.log(filterQuestions);
+                                (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
+                            }
+                        }
+
+                    } catch (error: any) {
+                        // console.log(response);
+                        console.log(error);
+                        await loading.dismiss();
+                        const alert = await alertController.create({
+                            header: 'Error from Ling AI',                        
                             message: error,
                             buttons: ['Ok'],
                         });
