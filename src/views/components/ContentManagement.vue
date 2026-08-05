@@ -165,8 +165,7 @@ import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp,
 import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
-import { C } from 'vue-router/dist/router-CWoNjPRp.mjs';
-import { repairJson } from 'json-repair-js';
+import { jsonrepair } from 'jsonrepair';
 
 const isSaving = ref(false);
 const isLoading = ref(false);
@@ -345,7 +344,7 @@ const addQuestion = async (domain: any)=> {
                         const result = await response.json();
                         const json = result['candidates'] && result['candidates'][0] && result['candidates'][0]['content'] && result['candidates'][0]['content']['parts'] && result['candidates'][0]['content']['parts'][0] && result['candidates'][0]['content']['parts'][0]['text'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';                        
                         if (json && json != '') {
-                            const jsonString = repairJson(json); 
+                            const jsonString = jsonrepair(json); 
                             const result = JSON.parse(jsonString);
                             let questions = result['data'] || result;
                             // console.log(questions);
