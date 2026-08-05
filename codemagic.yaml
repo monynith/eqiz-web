@@ -1,0 +1,80 @@
+workflows:
+  android-debug:
+    environment:      
+      node: 22.18.0
+      java: 21.0.7
+    scripts:
+      - name: Npm Install
+        script: npm i
+      - name: Add icon generator
+        script: npm install @capacitor/assets --save-dev
+      - name: Generate icon
+        script: npx capacitor-assets generate --android
+      - name: Capacitor build
+        script: ionic build android
+      - name: Capacitor copy
+        script: ionic capacitor copy android
+      - name: Capacitor sync
+        script: ionic capacitor sync android
+      - name: Permission for gradle
+        working_directory: android
+        script: chmod +x gradlew
+      - name: Build Android APK
+        working_directory: android
+        script: ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/**/**/*.apk
+  android-release:
+    environment:      
+      node: 22.18.0
+      java: 21.0.7
+    scripts:
+      - name: Npm Install
+        script: npm i
+      - name: Add icon generator
+        script: npm install @capacitor/assets --save-dev
+      - name: Generate icon
+        script: npx capacitor-assets generate --android
+      - name: Capacitor build
+        script: ionic build android
+      - name: Capacitor copy
+        script: ionic capacitor copy android
+      - name: Capacitor sync
+        script: ionic capacitor sync android
+      - name: Permission for gradle
+        working_directory: android
+        script: chmod +x gradlew
+      - name: Build Android APK
+        working_directory: android
+        script: ./gradlew assembleRelease
+    artifacts:
+      - android/app/build/outputs/**/**/*.apk
+  android-bundle:
+    environment:      
+      node: 22.18.0
+      java: 21.0.7
+    scripts:
+      - name: Npm Install
+        script: npm i
+      - name: Add icon generator
+        script: npm install @capacitor/assets --save-dev
+      - name: Generate icon
+        script: npx capacitor-assets generate --android
+      - name: Capacitor build
+        script: ionic build android
+      - name: Capacitor copy
+        script: ionic capacitor copy android
+      - name: Capacitor sync
+        script: ionic capacitor sync android
+      - name: Permission for gradle
+        working_directory: android
+        script: chmod +x gradlew
+      - name: Build Android APK
+        working_directory: android
+        script: ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/**/*.aab
+    publishing:
+      app_store_connect:
+        auth: integration 
+        submit_to_testflight: true
