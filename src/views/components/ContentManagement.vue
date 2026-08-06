@@ -140,7 +140,7 @@
                             <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
                             <span>Completed</span>
                         </div>                   
-                        <ion-icon :icon="sparkles" id="ai-icon" @click="showAI"></ion-icon>        
+                        <ion-icon :icon="sparkles" id="ai-icon" @click="showAI(domain)"></ion-icon>        
                     </div> 
 
                     <div class="add-item" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" @click="addQuestion(domain)">
@@ -167,7 +167,6 @@ import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
 import { jsonrepair } from 'jsonrepair';
-import OpenAI from "openai"
 
 const isSaving = ref(false);
 const isLoading = ref(false);
@@ -1246,24 +1245,28 @@ const showAI = async (domain: any)=> {
                         const key = localStorage.getItem("KILO_KEY") || '';
 
                         try {
-                            const client = new OpenAI({
-                                apiKey: key,
-                                baseURL: "https://api.kilo.ai/api/gateway",
-                                dangerouslyAllowBrowser: true
-                            })
+                            const response = await fetch(`https://kilo-ai.n-o.deno.net/`, {
+                                method: "POST", 
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify({
+                                    prompt: JSON.stringify(str),
+                                    model: v,
+                                    key
+                                })
+                            });
 
-                            const response = await client.chat.completions.create({
-                                model: v,
-                                messages: [                                
-                                    { role: "user", content: `${JSON.stringify(str)}` },
-                                ],
-                            })                        
+                            if (!response.ok) {                              
+                                const error = await response.json();                         
+                                throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
+                            }
 
                             await loading.dismiss();
 
-                            const result = response;  
-                            console.log(result);                                            
-                            const json = result['choices'] && result['choices'][0] && result['choices'][0]['message'] && result['choices'][0]['message']['content'] && result['choices'][0]['message']['content'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';
+                            const result = await response.json();
+                            // console.log(result['content']);                                            
+                            const json = result['content'] || '';
                             if (json && json != '') {
                                 const jsonString = jsonrepair(json); 
                                 const result = JSON.parse(jsonString);
