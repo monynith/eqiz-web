@@ -1218,7 +1218,8 @@ const showAI = async (domain: any)=> {
         "google/gemini-3.6-flash",
         "inclusionai/ling-3.0-flash:free",
         "kilo-auto/free",
-        "stepfun/step-3.7-flash:free"
+        "stepfun/step-3.7-flash:free",
+        "google/gemini-2.5-flash"
     ];
     const actionSheet = await actionSheetController.create({
         header: 'Pick Model',
