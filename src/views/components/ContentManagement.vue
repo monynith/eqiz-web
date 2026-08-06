@@ -139,7 +139,8 @@
                         <div id="completed" v-if="isQuestionCompleted(domain)">
                             <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
                             <span>Completed</span>
-                        </div>                           
+                        </div>                   
+                        <ion-icon :icon="sparkles" id="ai-icon" @click="showAI"></ion-icon>        
                     </div> 
 
                     <div class="add-item" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" @click="addQuestion(domain)">
@@ -161,7 +162,7 @@ import glossary from '@/assets/prompts/glossary';
 import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController } from '@ionic/vue';
-import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, openOutline, scanOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
+import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
@@ -289,162 +290,6 @@ const addQuestion = async (domain: any)=> {
         header: 'Add Question Batch',
         subHeader: 'Part ' + domain['id'] + ': ' + (domain['part'] || domain['name']),
         buttons: [{
-            text: 'Gemini AI',
-            handler: async ()=> {
-                setTimeout(async ()=> {
-                    const loading = await loadingController.create({
-                        message: 'Generating...',    
-                        duration: 1000 * 120                
-                    });
-
-                    loading.present();   
-                    
-                    let str = '';
-                    str = question.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']).replaceAll('$RP{domain-name}', domain['part'] || domain['name']);        
-                    if(calculation.value == false) {
-                        str = str.replaceAll('$RP{comment-start}', '<!--').replaceAll('$RP{comment-end}', '-->');
-                    } else {
-                        str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
-                    }         
-                    
-                    const model = localStorage.getItem("GEMINI_MODEL");
-                    const key = localStorage.getItem("GEMINI_KEY") || '';
-
-                    try {
-                        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-                            method: "POST", 
-                            headers: {
-                                "Content-Type": "application/json",
-                                "x-goog-api-key": key
-                            },
-                            body: JSON.stringify({
-                                "contents": [
-                                    {
-                                    "parts": [
-                                        {
-                                            "text": JSON.stringify(str)
-                                        }
-                                    ]
-                                    }
-                                ],
-                                "generationConfig": {
-                                    "thinkingConfig": {
-                                        "thinkingLevel": "LOW"
-                                    }
-                                }
-                            }) 
-                        });
-
-                        await loading.dismiss();
-
-                        // Catches 400, 404, 500, etc.
-                        if (!response.ok) {                              
-                            const error = await response.json();                         
-                            throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
-                        }
-
-                        const result = await response.json();
-                        const json = result['candidates'] && result['candidates'][0] && result['candidates'][0]['content'] && result['candidates'][0]['content']['parts'] && result['candidates'][0]['content']['parts'][0] && result['candidates'][0]['content']['parts'][0]['text'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';                        
-                        if (json && json != '') {
-                            const jsonString = jsonrepair(json); 
-                            const result = JSON.parse(jsonString);
-                            let questions = result['data'] || result;
-                            // console.log(questions);
-                            if (questions.length > 0) {    
-                                if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
-                                if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
-                                const filterQuestions = validateQuestions(questions, domain);
-                                // console.log(filterQuestions);
-                                (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
-                            }
-                        }
-
-                    } catch (error: any) {
-                        // console.log(response);
-                        console.log(error);
-                        await loading.dismiss();
-                        const alert = await alertController.create({
-                            header: 'Error from Gemini',                        
-                            message: error,
-                            buttons: ['Ok'],
-                        });
-
-                        await alert.present();
-                    }
-                }, 350);                
-
-            },        
-        }, {
-            text: 'Open Router',
-            handler: async ()=> {
-                setTimeout(async ()=> {
-                    const loading = await loadingController.create({
-                        message: 'Generating...', 
-                        duration: 1000 * 120                   
-                    });
-
-                    loading.present();   
-                    
-                    let str = '';
-                    str = question.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']).replaceAll('$RP{domain-name}', domain['part'] || domain['name']);        
-                    if(calculation.value == false) {
-                        str = str.replaceAll('$RP{comment-start}', '<!--').replaceAll('$RP{comment-end}', '-->');
-                    } else {
-                        str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
-                    }         
-                    
-                    const model = localStorage.getItem("OPENROUTER_MODEL") || '';
-                    const key = localStorage.getItem("OPENROUTER_KEY") || '';
-
-                    try {
-                        const client = new OpenAI({
-                            apiKey: key,
-                            baseURL: "https://openrouter.ai/api/v1",
-                            dangerouslyAllowBrowser: true
-                        })
-
-                        const response = await client.chat.completions.create({
-                            model,
-                            messages: [                                
-                                { role: "user", content: `${JSON.stringify(str)}` },
-                            ],
-                        })                        
-
-                        await loading.dismiss();
-
-                        const result = response;  
-                        // console.log(result);                                              
-                        const json = result['choices'] && result['choices'][0] && result['choices'][0]['message'] && result['choices'][0]['message']['content'] && result['choices'][0]['message']['content'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';
-                        if (json && json != '') {
-                            const jsonString = jsonrepair(json); 
-                            const result = JSON.parse(jsonString);
-                            let questions = result['data'] || result;
-                            // console.log(questions);
-                            if (questions.length > 0) {    
-                                if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
-                                if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
-                                const filterQuestions = validateQuestions(questions, domain);
-                                // console.log(filterQuestions);
-                                (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
-                            }
-                        }
-
-                    } catch (error: any) {
-                        // console.log(response);
-                        console.log(error);
-                        await loading.dismiss();
-                        const alert = await alertController.create({
-                            header: 'Error from OpenRouter',                        
-                            message: error,
-                            buttons: ['Ok'],
-                        });
-
-                        await alert.present();
-                    }
-                }, 350);                
-
-            },        
-        }, {
             text: 'Cancel'
         }],
         inputs: alertInputs,
@@ -1364,6 +1209,95 @@ const openText = (text: any, type?: string, stringify?: boolean)=> {
             }
         };
     }
+}
+
+const showAI = async (domain: any)=> {
+    const model = [
+        "google/gemini-3.5-flash-lite",
+        "google/gemini-3.1-flash-lite",
+        "google/gemini-3.5-flash",
+        "google/gemini-3.6-flash",
+        "inclusionai/ling-3.0-flash:free",
+        "kilo-auto/free",
+        "stepfun/step-3.7-flash:free"
+    ];
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: model.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        const loading = await loadingController.create({
+                            message: 'Generating...', 
+                            duration: 1000 * 120                   
+                        });
+
+                        loading.present();   
+                        
+                        let str = '';
+                        str = question.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']).replaceAll('$RP{domain-name}', domain['part'] || domain['name']);        
+                        if(calculation.value == false) {
+                            str = str.replaceAll('$RP{comment-start}', '<!--').replaceAll('$RP{comment-end}', '-->');
+                        } else {
+                            str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
+                        }         
+                                                
+                        const key = localStorage.getItem("KILO_KEY") || '';
+
+                        try {
+                            const client = new OpenAI({
+                                apiKey: key,
+                                baseURL: "https://api.kilo.ai/api/gateway",
+                                dangerouslyAllowBrowser: true
+                            })
+
+                            const response = await client.chat.completions.create({
+                                model: v,
+                                messages: [                                
+                                    { role: "user", content: `${JSON.stringify(str)}` },
+                                ],
+                            })                        
+
+                            await loading.dismiss();
+
+                            const result = response;  
+                            console.log(result);                                            
+                            const json = result['choices'] && result['choices'][0] && result['choices'][0]['message'] && result['choices'][0]['message']['content'] && result['choices'][0]['message']['content'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim() || '';
+                            if (json && json != '') {
+                                const jsonString = jsonrepair(json); 
+                                const result = JSON.parse(jsonString);
+                                let questions = result['data'] || result;
+                                // console.log(questions);
+                                if (questions.length > 0) {    
+                                    if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
+                                    if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
+                                    const filterQuestions = validateQuestions(questions, domain);
+                                    // console.log(filterQuestions);
+                                    (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
+                                }
+                            }
+
+                        } catch (error: any) {
+                            // console.log(response);
+                            console.log(error);
+                            await loading.dismiss();
+                            const alert = await alertController.create({
+                                header: 'Error: AI',                        
+                                message: error,
+                                buttons: ['Ok'],
+                            });
+
+                            await alert.present();
+                        }
+                    }, 0); 
+                }
+            }            
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
 }
 
 </script>

@@ -117,6 +117,7 @@
     margin-top: 20px;
     padding: 20px;
     padding-bottom: 25px;    
+    position: relative;
 }
 
 #template-wrapper #content-wrapper .add-button {
@@ -416,4 +417,13 @@
     font-size: 0.8rem;
     margin-left: 5px;
     color: #9a9a9a;
+}
+
+#ai-icon {
+    font-size: 1rem;
+    color: palevioletred;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    opacity: 0.8;
 }
