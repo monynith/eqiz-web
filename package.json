@@ -19,6 +19,7 @@
     "@capacitor/ios": "8.4.1",
     "@capacitor/keyboard": "8.0.5",
     "@capacitor/status-bar": "^8.0.2",
+    "@capawesome/capacitor-android-edge-to-edge-support": "^8.0.8",
     "@ionic/vue": "^8.0.0",
     "@ionic/vue-router": "^8.0.0",
     "@libsql/client": "^0.17.4",

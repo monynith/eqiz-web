@@ -109,11 +109,15 @@ const app = createApp(App)
 // });
 
 import { StatusBar } from '@capacitor/status-bar';
+import { EdgeToEdge } from '@capawesome/capacitor-android-edge-to-edge-support';
+import { SystemBars, SystemBarsStyle } from '@capacitor/core';
 
 const init = async ()=> {
   try {
     await StatusBar.setOverlaysWebView({ overlay: false });
     await StatusBar.setBackgroundColor({ color: "#f5f0f0" })
+    await EdgeToEdge.setStatusBarColor({ color: '#f5f0f0' });
+    await SystemBars.setStyle({ style: SystemBarsStyle.Light });
   } catch (error) {
     console.warn('StatusBar plugin not available on web:', error);
   }
