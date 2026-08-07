@@ -1,10 +1,8 @@
 <template>
     <div id="btn-wrapper">
-        <p class="create-btn" @click="createAgain">CREATE AGAIN</p>
-        <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] != ''" @click="saveContent">{{ isSaving ? 'SAVING...' : 'SAVE CONTENT' }}</p>
-        <p class="create-btn" style="color: cadetblue;" v-if="contentData['appId'] == ''" @click="loadContent">{{ isLoading ? 'LOADING...' : 'LOAD CONTENT' }}</p>
-    </div> 
-    <div id="app-wrapper">   
+        <p class="create-btn" @click="mainMenu"><ion-icon :icon="menuOutline"></ion-icon> MENU</p>
+    </div>     
+    <div id="app-wrapper">  
         <p id="add-remark-btn" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }">
             <ion-icon :icon="contentData['remark'] != '' ? checkmarkDoneSharp : add" @click="onRemark"></ion-icon>
             <span @click="onRemark">{{ contentData['remark'] != '' ? 'REMARK' : 'ADD REMARK' }}</span>
@@ -53,6 +51,7 @@
             <p class="label" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }">Domain(s) 
                 <ion-icon :icon="copyOutline" @click="copyPrompt('domain')" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
                 <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? contentData.domains : '')"></ion-icon>
+                <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="showAI('domain')"></ion-icon>
             </p>
             <div id="domain-wrapper">
                 <div v-for="(domain, index) in (contentData.domains as any)[selectedCertification['id']]" class="domain-items">
@@ -65,7 +64,9 @@
             </div>
 
             <div id="content-wrapper" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }">
-                <p class="inner-title">GLOBAL CONTENT</p>                
+                <p class="inner-title">GLOBAL CONTENT 
+                    <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="generateAll('global')"></ion-icon>
+                </p>                
                 <div class="add-wrapper">
                     <p class="add-button" @click="addContent('glossary')">
                         <ion-icon :icon="isContentSet('glossary') ? checkmarkDoneSharp : add"></ion-icon>
@@ -109,7 +110,9 @@
             <!-- <p class="label" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }">Content per Domain</p>             -->
             <div id="content-wrapper" :style="{ opacity: selectedCertification['id'] != '' && (contentData['domains'] as any)[selectedCertification['id']] && (contentData['domains'] as any)[selectedCertification['id']].length > 0 ? 1 : 0.5 }">
                 <!-- <p class="inner-title">SELECT DOMAIN<ion-icon :icon="chevronDownOutline"></ion-icon> </p>                 -->
-                <p class="inner-title">LECTURE NOTES</p>                
+                <p class="inner-title">LECTURE NOTES
+                    <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="generateAll('notes')"></ion-icon>
+                </p>                
                 <div class="add-wrapper" v-for="domain in (contentData.domains as any)[selectedCertification.id]">
                     <p class="add-button" @click="addContent('note', domain)">
                         <ion-icon :icon="isContentSet('note', domain['id']) ? checkmarkDoneSharp : add"></ion-icon>
@@ -127,7 +130,8 @@
             <br/>
             <br/>
             <p class="label" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" v-if="(contentData.domains as any)[selectedCertification.id] && (contentData.domains as any)[selectedCertification.id].length > 0">Questions</p>             
-            <ion-toggle mode="md" id="question-toggle" @click="toggleNotifications" v-if="(contentData.domains as any)[selectedCertification.id] && (contentData.domains as any)[selectedCertification.id].length > 0">CALCULATION?</ion-toggle><br />
+            <ion-toggle mode="md" id="question-toggle" @click="toggleNotifications" :checked="calculation" v-if="(contentData.domains as any)[selectedCertification.id] && (contentData.domains as any)[selectedCertification.id].length > 0">CALCULATION?</ion-toggle>
+            <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="checkCalculation" v-if="(contentData.domains as any)[selectedCertification.id] && (contentData.domains as any)[selectedCertification.id].length > 0" title="Check calculation questions with AI"></ion-icon><br />
             <div id="question-wrapper">
                 <div v-for="domain in (contentData.domains as any)[selectedCertification.id]" class="question-title">
                     <p>{{ `Part ${domain['id']}: ${domain['part'] || domain['name']}` }}
@@ -159,6 +163,7 @@
 
 <script setup lang="ts">
 import certification from '@/assets/prompts/certification';
+import calculationCheck from '@/assets/prompts/calculation';
 import cheatsheet from '@/assets/prompts/cheatsheet';
 import domainContent from '@/assets/prompts/domain';
 import examtip from '@/assets/prompts/examtip';
@@ -167,7 +172,7 @@ import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController, modalController } from '@ionic/vue';
 import TextModal from './TextModal.vue';
-import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
+import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, menuOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
@@ -502,6 +507,9 @@ const buildPrompt = (type: string, domain?: any) => {
     if(type == 'examtip') {
         str = examtip.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']);
     }
+    if(type == 'calc') {
+        str = calculationCheck.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']);
+    }
     if(type == 'note') {
         str = note.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']).replaceAll('$RP{domain-name}', domain['part'] || domain['name']);
     }
@@ -654,9 +662,13 @@ const deShortenString = (str: string)=> {
     return JSON.parse(jsonString);
 }
 
-const saveContent = async ()=> {
+const saveContent = async (clear: boolean = true)=> {
     // console.log(contentData.value);
     if(isSaving.value == true) return;
+    const loading = await loadingController.create({
+        message: 'Saving...'
+    });
+    await loading.present();
     isSaving.value = true;
     const dbUrl = import.meta.env.VITE_DB_URL;
     const dbToken = import.meta.env.VITE_DB_TOKEN;
@@ -701,7 +713,8 @@ const saveContent = async ()=> {
                 `
         }])
         isSaving.value = false;
-        createAgain();
+        await loading.dismiss();
+        if(clear) createAgain();
         const toast = await toastController.create({
             message: 'Successfully updated.',
             duration: 2000,
@@ -726,7 +739,8 @@ const saveContent = async ()=> {
             `
         }]);
         isSaving.value = false;
-        createAgain();
+        await loading.dismiss();
+        if(clear) createAgain();
         const toast = await toastController.create({
             message: 'Successfully created.',
             duration: 2000,
@@ -738,6 +752,7 @@ const saveContent = async ()=> {
     } catch(e){
         console.log(e);
         isSaving.value = false;
+        await loading.dismiss();
         const toast = await toastController.create({
             message: 'Something went wrong.',
             duration: 3500,
@@ -747,6 +762,10 @@ const saveContent = async ()=> {
 
         await toast.present();
     } 
+}
+
+const saveContentKeep = async ()=> {
+    await saveContent(false);
 }
 
 const getNotes = (certId: string)=> {
@@ -965,6 +984,10 @@ const loadQuestion = async ()=> {
 }
 
 const loadFromDB = async (data: any)=> {
+    const loading = await loadingController.create({
+        message: 'Loading...'
+    });
+    await loading.present();
     try {
         const dbUrl = import.meta.env.VITE_DB_URL;
         const dbToken = import.meta.env.VITE_DB_TOKEN;
@@ -1015,9 +1038,11 @@ const loadFromDB = async (data: any)=> {
 
         }
         isLoading.value = false;
+        await loading.dismiss();
     } catch(e){
         console.log(e);
         isLoading.value = false;
+        await loading.dismiss();
     }    
 }
 
@@ -1035,7 +1060,6 @@ const loadContent = async ()=> {
       }, {
         text: 'Load',
         handler: async (data)=> {   
-            isLoading.value = true; 
             setTimeout(()=> {
                 loadFromDB(data);       
             }, 200);                         
@@ -1045,6 +1069,35 @@ const loadContent = async ()=> {
       mode: 'md'
     });
     await alert.present();
+}
+
+const mainMenu = async ()=> {
+    const buttons: any[] = [{
+        text: 'CREATE AGAIN',
+        handler: createAgain
+    }];
+    if(contentData.value['appId'] == '') {
+        buttons.push({
+            text: isLoading.value ? 'LOADING...' : 'LOAD CONTENT',
+            handler: loadContent
+        });
+    } else {
+        buttons.push({
+            text: isSaving.value ? 'SAVING...' : 'SAVE CONTENT',
+            handler: () => saveContent(true)
+        });
+        buttons.push({
+            text: 'SAVE & KEEP',
+            handler: saveContentKeep
+        });
+    }
+    const actionSheet = await actionSheetController.create({
+        header: 'Menu',
+        buttons,
+        mode: 'md'
+    });
+
+    await actionSheet.present();
 }
 
 const moreOption = async ()=> {
@@ -1146,90 +1199,88 @@ const openText = async (text: any, type?: string, stringify?: boolean)=> {
     }
 }
 
+const AI_MODELS = [
+    "google/gemini-3.5-flash-lite",
+    "google/gemini-3.1-flash-lite",
+    "google/gemini-3.5-flash",
+    "google/gemini-3.6-flash",
+    "inclusionai/ling-3.0-flash:free",
+    "kilo-auto/free",
+    "stepfun/step-3.7-flash:free",
+    "google/gemini-2.5-flash"
+];
+
+const callAI = async (type: string, model: string, domain?: any)=> {
+    const str = buildPrompt(type, domain);             
+    const key = localStorage.getItem("KILO_KEY") || '';
+
+    const response = await fetch(`https://kilo-ai.n-o.deno.net/`, {
+        method: "POST", 
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            prompt: JSON.stringify(str),
+            model,
+            key
+        })
+    });
+
+    if (!response.ok) {                              
+        const error = await response.json();                         
+        throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
+    }
+
+    const result = await response.json();
+    const json = result['content'] || '';
+    if (json && json != '') {
+        if(type == 'calc') return json;
+        if(type == 'question') {
+            const jsonString = jsonrepair(json); 
+            const parsed = JSON.parse(jsonString);
+            const questions = parsed['data'] || parsed;
+            if (questions.length > 0) {    
+                if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
+                if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
+                (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = validateQuestions(questions, domain);
+            }
+        } else if(type == 'domain') {
+            const jsonString = jsonrepair(json); 
+            const parsed = JSON.parse(jsonString);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                (contentData.value.domains as any)[selectedCertification.value.id] = parsed;
+            }
+        } else if(type == 'note') {
+            if(!(contentData.value.content as any)[selectedCertification.value.id]) (contentData.value.content as any)[selectedCertification.value.id] = {};
+            if(!(contentData.value.content as any)[selectedCertification.value.id][type]) (contentData.value.content as any)[selectedCertification.value.id][type] = {};
+            (contentData.value.content as any)[selectedCertification.value.id][type][domain['id']] = json;
+        } else {
+            if(!(contentData.value.content as any)[selectedCertification.value.id]) (contentData.value.content as any)[selectedCertification.value.id] = {};
+            (contentData.value.content as any)[selectedCertification.value.id][type] = json;
+        }
+    }
+}
+
 const showAI = async (type: string, domain?: any)=> {
     if(type != 'cert' && selectedCertification.value.id == '') return;
     if((type == 'note' || type == 'question') && !domain) return;
 
-    const model = [
-        "google/gemini-3.5-flash-lite",
-        "google/gemini-3.1-flash-lite",
-        "google/gemini-3.5-flash",
-        "google/gemini-3.6-flash",
-        "inclusionai/ling-3.0-flash:free",
-        "kilo-auto/free",
-        "stepfun/step-3.7-flash:free",
-        "google/gemini-2.5-flash"
-    ];
     const actionSheet = await actionSheetController.create({
         header: 'Pick Model',
-        buttons: model.map((v) => {
+        buttons: AI_MODELS.map((v) => {
             return {
                 text: v,
                 handler: ()=> {
                     setTimeout(async ()=> {
                         const loading = await loadingController.create({
-                            message: 'Generating...', 
-                            duration: 1000 * 120                   
+                            message: 'Generating...',          
                         });
- 
                         loading.present();   
-                        
-                        const str = buildPrompt(type, domain);             
-                                                
-                        const key = localStorage.getItem("KILO_KEY") || '';
 
                         try {
-                            const response = await fetch(`https://kilo-ai.n-o.deno.net/`, {
-                                method: "POST", 
-                                headers: {
-                                    "Content-Type": "application/json",
-                                },
-                                body: JSON.stringify({
-                                    prompt: JSON.stringify(str),
-                                    model: v,
-                                    key
-                                })
-                            });
-
-                            if (!response.ok) {                              
-                                const error = await response.json();                         
-                                throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
-                            }
-
+                            await callAI(type, v, domain);
                             await loading.dismiss();
-
-                            const result = await response.json();
-                            // console.log(result['content']);                                            
-                            const json = result['content'] || '';
-                            if (json && json != '') {
-                                if(type == 'question') {
-                                    const jsonString = jsonrepair(json); 
-                                    const parsed = JSON.parse(jsonString);
-                                    const questions = parsed['data'] || parsed;
-                                    if (questions.length > 0) {    
-                                        if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
-                                        if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
-                                        const filterQuestions = validateQuestions(questions, domain);
-                                        (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
-                                    }
-                                } else if(type == 'domain') {
-                                    const jsonString = jsonrepair(json); 
-                                    const parsed = JSON.parse(jsonString);
-                                    if (Array.isArray(parsed) && parsed.length > 0) {
-                                        (contentData.value.domains as any)[selectedCertification.value.id] = parsed;
-                                    }
-                                } else if(type == 'note') {
-                                    if(!(contentData.value.content as any)[selectedCertification.value.id]) (contentData.value.content as any)[selectedCertification.value.id] = {};
-                                    if(!(contentData.value.content as any)[selectedCertification.value.id][type]) (contentData.value.content as any)[selectedCertification.value.id][type] = {};
-                                    (contentData.value.content as any)[selectedCertification.value.id][type][domain['id']] = json;
-                                } else {
-                                    if(!(contentData.value.content as any)[selectedCertification.value.id]) (contentData.value.content as any)[selectedCertification.value.id] = {};
-                                    (contentData.value.content as any)[selectedCertification.value.id][type] = json;
-                                }
-                            }
-
                         } catch (error: any) {
-                            // console.log(response);
                             console.log(error);
                             await loading.dismiss();
                             const alert = await alertController.create({
@@ -1238,6 +1289,114 @@ const showAI = async (type: string, domain?: any)=> {
                                 buttons: ['Ok'],
                             });
 
+                            await alert.present();
+                        }
+                    }, 0); 
+                }
+            }            
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const generateAll = async (kind: 'global' | 'notes')=> {
+    if(selectedCertification.value.id == '') return;
+    if(kind == 'notes') {
+        const domains = (contentData.value.domains as any)[selectedCertification.value.id];
+        if(!domains || domains.length <= 0) return;
+    }
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        const loading = await loadingController.create({
+                            message: 'Generating...',
+                        });
+                        loading.present();
+
+                        try {
+                            if(kind == 'global') {
+                                for (const t of ['glossary', 'cheatsheet', 'examtip']) {
+                                    loading.message = `Generating ${t}...`;
+                                    await callAI(t, v);
+                                }
+                            } else {
+                                const domains = (contentData.value.domains as any)[selectedCertification.value.id] || [];
+                                for (const d of domains) {
+                                    loading.message = `Generating note ${d['id']}...`;
+                                    await callAI('note', v, d);
+                                }
+                            }
+                            await loading.dismiss();
+                            const toast = await toastController.create({
+                                message: 'Generated successfully.',
+                                duration: 2000,
+                                position: 'bottom',
+                                color: "secondary"
+                            });
+                            await toast.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await loading.dismiss();
+                            const alert = await alertController.create({
+                                header: 'Error: AI',                        
+                                message: error,
+                                buttons: ['Ok'],
+                            });
+                            await alert.present();
+                        }
+                    }, 0); 
+                }
+            }            
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const checkCalculation = async ()=> {
+    if(selectedCertification.value.id == '') return;
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        const loading = await loadingController.create({
+                            message: 'Checking...'
+                        });
+                        loading.present();
+
+                        try {
+                            const answer = await callAI('calc', v);
+                            const match = answer.match(/HAS_CALCULATION:\s*(yes|no)/i);
+                            if(match) {
+                                calculation.value = /^yes/i.test(match[1]);
+                            }
+                            await loading.dismiss();
+                            const alert = await alertController.create({
+                                header: 'Calculation Check',
+                                message: answer || 'No response.',
+                                buttons: ['Ok']
+                            });
+                            await alert.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await loading.dismiss();
+                            const alert = await alertController.create({
+                                header: 'Error: AI',                        
+                                message: error,
+                                buttons: ['Ok'],
+                            });
                             await alert.present();
                         }
                     }, 0); 
