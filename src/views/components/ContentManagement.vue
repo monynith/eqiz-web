@@ -1211,25 +1211,52 @@ const AI_MODELS = [
     "google/gemini-2.5-flash"
 ];
 
-const callAI = async (type: string, model: string, domain?: any)=> {
-    const str = buildPrompt(type, domain);             
-    const key = localStorage.getItem("KILO_KEY") || '';
+const AI_ENDPOINTS = [
+    "https://ai.n-o-me.workers.dev/",
+    "https://kilo-ai.n-o.deno.net/"
+];
 
+const postAI = async (url: string, data: any) => {
     const response = await CapacitorHttp.post({
-        url: `https://kilo-ai.n-o.deno.net/`,
+        url,
         headers: {
             "Content-Type": "application/json",
         },
-        data: {
-            prompt: JSON.stringify(str),
-            model,
-            key
-        }
+        data
     });
 
     if (response.status < 200 || response.status >= 300) {
         const error = response.data;
         throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
+    }
+
+    return response;
+};
+
+const callAI = async (type: string, model: string, domain?: any)=> {
+    const str = buildPrompt(type, domain);             
+    const key = localStorage.getItem("KILO_KEY") || '';
+
+    const data = {
+        prompt: JSON.stringify(str),
+        model,
+        key
+    };
+
+    let lastError: any;
+    let response: any;
+    for (const url of AI_ENDPOINTS) {
+        try {
+            response = await postAI(url, data);
+            break;
+        } catch (e) {
+            console.error(`AI endpoint failed: ${url}`, e);
+            lastError = e;
+        }
+    }
+
+    if (!response) {
+        throw lastError || new Error("All AI endpoints failed");
     }
 
     const result = response.data;
