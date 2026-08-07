@@ -8,7 +8,7 @@
         <p id="add-remark-btn" :style="{ opacity: contentData['appId'] != '' ? 1 : 0.5, cursor: contentData['appId'] != '' ? 'pointer' : 'default' }">
             <ion-icon :icon="contentData['remark'] != '' ? checkmarkDoneSharp : add" @click="onRemark"></ion-icon>
             <span @click="onRemark">{{ contentData['remark'] != '' ? 'REMARK' : 'ADD REMARK' }}</span>
-            <ion-icon :icon="scanOutline" class="open-icon" style="font-size: 0.7rem;" v-if="contentData['remark'] != ''" @click="openText(contentData.remark, 'markdown', false)"></ion-icon>
+            <ion-icon :icon="scanOutline" class="open-icon" style="font-size: 0.7rem;" v-if="contentData['remark'] != ''" @click="openText(contentData.remark)"></ion-icon>
             <ion-icon :icon="documentTextOutline" class="open-icon" style="font-size: 0.7rem; margin-left: 2px;" v-if="contentData['remark'] != ''" @click="viewMD"></ion-icon>            
         </p>     
         <p id="app-id">App ID: <span id="value">{{ contentData['appId'] || 'unset' }}</span> <ion-icon :icon="createOutline" @click="setAppId"></ion-icon></p>
@@ -161,7 +161,8 @@ import examtip from '@/assets/prompts/examtip';
 import glossary from '@/assets/prompts/glossary';
 import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
-import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController } from '@ionic/vue';
+import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController, modalController } from '@ionic/vue';
+import TextModal from './TextModal.vue';
 import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
 import { ref } from 'vue';
 import JSZip from 'jszip';
@@ -1029,39 +1030,7 @@ const moreOption = async ()=> {
 
 const viewMD = ()=> {
     if(contentData.value.remark != '') {
-        const text = contentData.value.remark;
-        const newWindow = window.open('', '_blank');
-
-        if (newWindow) {            
-            newWindow.document.write(`
-                <!DOCTYPE html>
-                <html lang="en">
-                <head>
-                <meta charset="UTF-8">
-                <title>Markdown Viewer</title>
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css">
-                ` + '<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></' + 'script>' + `
-                <style>
-                    body { box-sizing: border-box; min-width: 200px; max-width: 980px; margin: 0 auto; padding: 45px; }
-                    @media (max-width: 767px) { body { padding: 15px; } }
-                </style>
-                </head>
-                <body class="markdown-body">
-                <div id="content">Loading...</div>
-                </body>
-                </html>
-            `);
-            
-            newWindow.document.close();
-
-            // 3. Wait for the dependencies (marked.js) to load, then render the Markdown safely
-            newWindow.onload = function() {
-                if ((newWindow as any)['marked']) {
-                    (newWindow.document.getElementById('content') as any).innerHTML = (newWindow as any)['marked'].parse(text);
-                }
-            };
-        }
-        return;
+        openText(contentData.value.remark, 'markdown', false);
     }
 }
 
@@ -1107,106 +1076,29 @@ const onRemark = async ()=> {
     await alert.present();
 }
 
-const openText = (text: any, type?: string, stringify?: boolean)=> {
+const openText = async (text: any, type?: string, stringify?: boolean)=> {
     if(text == '') return;
-    // const jsonString = JSON.stringify(json, null, 6); 
-    // const blob = new Blob([jsonString], { type: 'application/json;charset=utf-8' });
-
-    // window.open(URL.createObjectURL(blob), '_blank');
-    const initialContent = text
 
     const mode = type || "json"; // Change to "markdown" if editing markdown!
+    const title = mode === 'markdown' ? 'Markdown Viewer' : 'Live Editor';
 
-    // 1. Open the blank window
-    const newWindow:any = window.open('', '_blank');
+    try {
+        const modal = await modalController.create({
+            component: TextModal,
+            componentProps: {
+                content: text,
+                mode,
+                stringify: stringify !== false,
+                title
+            },
+            breakpoints: [0, 1],
+            initialBreakpoint: 1,
+            mode: 'md'
+        });
 
-    if (newWindow) {
-        // 2. Build the editor interface safely
-        newWindow.document.write(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-            <meta charset="UTF-8">
-            <title>Live Editor</title>
-            <!-- Load Google Sans Code Font -->
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght@400;500;700&display=swap" rel="stylesheet">
-            <style>
-                body { 
-                    margin: 0; padding: 0; height: 100vh; 
-                    display: flex; flex-direction: column; 
-                    overflow: hidden; font-family: system-ui, sans-serif; 
-                    background: #1e1e1e; color: #fff;
-                }
-                #toolbar { 
-                    height: 45px; background: #181818; 
-                    display: flex; align-items: center; 
-                    padding: 0 15px; border-bottom: 1px solid #2d2d2d; 
-                    gap: 10px;
-                }
-                #editor { 
-                    flex: 1; width: 100%; height: calc(100vh - 45px); 
-                }
-                button { 
-                    background: #3c3c3c; color: white; border: none; 
-                    padding: 6px 12px; border-radius: 4px; cursor: pointer; 
-                    font-size: 13px; font-weight: 500; transition: background 0.2s;
-                }
-                button:hover { background: #505050; }
-                #copy-success { font-size: 12px; color: #4caf50; display: none; }
-            </style>
-            <!-- Load Ace Editor via CDN safely -->
-            ` + '<script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.7/ace.js"></' + 'script>' + `
-            </head>
-            <body>
-            <div id="toolbar">
-                <span style="font-weight: bold; font-size: 13px; color: #858585; text-transform: uppercase; margin-right: 10px;">Editor</span>
-                <button id="btn-copy">Copy Code</button>
-                <span id="copy-success">Copied!</span>
-            </div>
-            <div id="editor"></div>
-            </body>
-            </html>
-        `);
-
-        newWindow.document.close();
-
-        // 3. Initialize Ace Editor once loaded
-        newWindow.onload = function() {
-            if (newWindow.ace) {
-            const editor = newWindow.ace.edit(newWindow.document.getElementById('editor'));
-
-            // Set to VS Code / Monokai Style
-            editor.setTheme("ace/theme/dracula");
-            editor.session.setMode("ace/mode/" + mode);
-
-            editor.session.setUseWorker(false);
-            editor.setValue(stringify == false ? initialContent : JSON.stringify(initialContent, null, 6), -1); // -1 resets the cursor selection
-            
-            editor.setOptions({
-                fontFamily: "'Google Sans Code', monospace", // <- Applies the font to the editor lines
-                fontSize: "14px",
-                showPrintMargin: false,
-                enableBasicAutocompletion: true,
-                useSoftTabs: true,
-                tabSize: 2
-            });
-
-            // --- Button Logic ---
-            
-            // Copy to clipboard
-            newWindow.document.getElementById('btn-copy').addEventListener('click', () => {
-                const currentCode = editor.getValue();
-                newWindow.navigator.clipboard.writeText(currentCode).then(() => {
-                const successSpan = newWindow.document.getElementById('copy-success');
-                successSpan.style.display = 'inline';
-                setTimeout(() => { successSpan.style.display = 'none'; }, 2000);
-                });
-            });
-
-            }
-        };
+        await modal.present();
+    } catch (e) {
+        console.error('Failed to open text modal:', e);
     }
 }
 
