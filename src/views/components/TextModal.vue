@@ -4,9 +4,14 @@
             <div id="toolbar">
                 <span id="title">{{ title }}</span>
                 <div id="actions">
-                    <span v-if="mode !== 'markdown'" id="btn-edit" @click="toggleEdit">{{ editMode ? 'View' : 'Edit' }}</span>
-                    <span id="btn-copy" @click="copyCode">Copy</span>
-                    <span id="btn-close" @click="close">Close</span>
+                    <div class="menu">
+                        <span v-if="mode !== 'markdown'" id="btn-edit" @click="toggleEdit">{{ editMode ? 'View' : 'Edit' }}</span>
+                        <span id="btn-copy" @click="copyCode">Copy</span>
+                    </div>
+                    <div class="menu">
+                        <button id="btn-done" @click="done">Done</button>
+                        <span id="btn-close" @click="close">Close</span>
+                    </div>
                 </div>
             </div>
             <div id="modal-editor-wrapper" @click="focusEditor" @touchend="focusEditor">
@@ -61,6 +66,30 @@ const loadStyle = (href: string): void => {
 
 const close = (): void => {
     modalController.dismiss();
+};
+
+const done = (): void => {
+    if (mode !== 'markdown') {
+        try {
+            JSON.parse(getText());
+        } catch (e) {
+            toastController.create({
+                message: 'Invalid JSON. Fix it before saving.',
+                duration: 2500,
+                position: 'bottom',
+                color: 'danger'
+            }).then(t => t.present());
+            return;
+        }
+    }
+    if (editMode.value) {
+        editMode.value = false;
+        const aceEl = editorEl.value as any;
+        if (aceEl && aceEl.__ace) {
+            aceEl.__ace.setReadOnly(true);
+        }
+    }
+    modalController.dismiss({ content: getText() });
 };
 
     const focusEditor = (): void => {
@@ -217,13 +246,45 @@ onMounted(async () => {
 #actions {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
+}
+.menu {
+    display: flex;
+    align-items: center;
+    background: #2a2a2a;
+    border: 1px solid #3a3a3a;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.menu > span,
+.menu > button {
+    padding: 7px 12px;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    line-height: 1;
+}
+.menu > span + span,
+.menu > button + span,
+.menu > span + button {
+    border-left: 1px solid #3a3a3a;
+}
+#btn-done {
+    background: palevioletred;
+    color: #fff;
+}
+#btn-done:active {
+    background: #d64f8c;
 }
 #btn-copy,
 #btn-close,
 #btn-edit {
     color: #fff;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
 }

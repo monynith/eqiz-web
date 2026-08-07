@@ -23,7 +23,8 @@ $RP{app-name} on $RP{cert-name}
 
 - Provide in JSON format, not in js.
 - Only mention the main name for each domain, no need colon to explain more. 
-- Make sure domain has only 4. No need to mention Part A, B, ... in part field
+- Make sure domain has exactly 4 entries.
+- The id of each domain must be EXACTLY one of "A", "B", "C", "D", and each letter must appear exactly once (no duplicates, no missing letters). Do not use Part A, B, ... inside the part field.
 - JSON structure of id and part need to be same as the example above.
 - Domain must be strictly from its examination and certificate.
 `

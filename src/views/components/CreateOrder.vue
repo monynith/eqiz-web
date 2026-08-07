@@ -26,7 +26,7 @@
                     </ion-input>
                 </ion-item>
                 <ion-item>
-                    <ion-input mode="ios" label-placement="stacked" placeholder="Enter 3-letter Code" v-model="country">
+                    <ion-input mode="ios" label-placement="stacked" placeholder="Enter 2 or 3-letter Code" v-model="country">
                         <div slot="label" class="my-custom-label">Country</div>
                     </ion-input>
                 </ion-item>
@@ -66,6 +66,7 @@ import { addOutline, arrowForward } from 'ionicons/icons';
 import { ref } from 'vue';
 import { createClient } from "@libsql/client";
 import getCountryISO2 from 'country-iso-3-to-2';
+import getCountryISO3 from 'country-iso-2-to-3';
 
 const loading = ref(false);
 const apps = ref([]);
@@ -141,8 +142,15 @@ const validateDate = (userInput: string) => {
   return userInput.startsWith(expectedMonth);
 }
 
-const getCountry = (countryCode: string)=> {
-    return getCountryISO2(countryCode) || '';
+const normalizeCountry = (code: string): string => {
+    const c = (code || '').trim().toUpperCase();
+    if (c.length === 2) {
+        return getCountryISO3(c) || '';
+    }
+    if (c.length === 3) {
+        return getCountryISO2(c) ? c : '';
+    }
+    return '';
 }
 
 const create = async ()=> {
@@ -185,10 +193,11 @@ const create = async ()=> {
         return;
     }
 
-    // validate country code
-    if(country.value.length != 3){
+    // validate country code (accept 2-letter or 3-letter ISO, normalize to 3-letter)
+    const normalizedCountry = normalizeCountry(country.value);
+    if(!normalizedCountry){
         const toast = await toastController.create({
-            message: 'Country must be a 3-letter ISO.',
+            message: 'Country must be a valid 2 or 3-letter ISO code.',
             duration: 3500,
             position: 'bottom',
             color: "danger"
@@ -197,19 +206,7 @@ const create = async ()=> {
         await toast.present();
         return;
     }
-
-    // validate if country code is not correct
-    if(getCountry(country.value) == ''){
-        const toast = await toastController.create({
-            message: 'Country must be a 3-letter ISO.',
-            duration: 3500,
-            position: 'bottom',
-            color: "danger"
-        });
-
-        await toast.present();
-        return;
-    }
+    country.value = normalizedCountry;
 
     const dbUrl = import.meta.env.VITE_DB_URL;
     const dbToken = import.meta.env.VITE_DB_TOKEN;

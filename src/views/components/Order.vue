@@ -1,12 +1,6 @@
 <template>
     <Skeleton v-if="loading == true"/>
     <div v-if="loading == false">
-        <ion-datetime-button datetime="datetime" style="display: none;"></ion-datetime-button>
-
-        <ion-modal ref="monthModal" :keep-contents-mounted="true">
-            <ion-datetime id="datetime" presentation="month-year" :show-default-buttons="true" mode="ios" @ion-change="changeMonth"></ion-datetime>
-        </ion-modal>
-
         <div class="header-wrapper">
             <div id="total-wrapper">
                 <p id="total-label">$<span id="amount">{{ totalAmount ? Number(totalAmount).toFixed(2) : 0 }}</span> processed &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp; </p> 
@@ -57,10 +51,11 @@
 </template>
 
 <script setup lang="ts">
-import { IonIcon, IonDatetimeButton, IonDatetime, IonModal, modalController } from '@ionic/vue';
+import { IonIcon, modalController } from '@ionic/vue';
 import { createClient } from '@libsql/client';
 import { arrowForwardOutline, chevronBackOutline, chevronDownOutline, chevronForwardOutline } from 'ionicons/icons';
 import Skeleton from './Skeleton.vue';
+import MonthModal from '../components/MonthModal.vue';
 import { ref } from 'vue';
 import getCountryISO2 from 'country-iso-3-to-2';
 import Modal from '../components/CreateOrder.vue';
@@ -68,24 +63,11 @@ import Modal from '../components/CreateOrder.vue';
 const loading = ref(true);
 const orders = ref([]);
 const apps = ref([]);
-const monthModal = ref();
 const totalAmount = ref("");
 const monthYear = ref("");
 let LIMIT = 20;
 let OFFSET = 0;
 let PAGE_SIZE = 0;
-
-const changeMonth = (event: any)=> {    
-    loading.value = true;
-    // new Date(event.detail.value) and new Date()
-    // console.log(checkSameMonthAndYear(event.detail.value));
-    OFFSET = 0;
-    if(!event.detail.value) {
-        getOrders(new Date())
-    } else {
-        getOrders(new Date(event.detail.value))
-    }    
-}
 
 const addOrder = async ()=> {
     const modal = await modalController.create({
@@ -145,8 +127,21 @@ const getCountry = (countryCode: string)=> {
     return countryName || '';
 }
 
-const openMonth = ()=> {
-    monthModal.value.$el.present();
+const openMonth = async ()=> {
+    const modal = await modalController.create({
+        component: MonthModal,
+        mode: 'md',
+        breakpoints: [0, 1],
+        initialBreakpoint: 1
+    });
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
+    if (data) {
+        const [year, month] = data.split('-').map(Number);
+        OFFSET = 0;
+        loading.value = true;
+        getOrders(new Date(year, month - 1, 1));
+    }
 }
 
 const movePage = async (type: string) => {    

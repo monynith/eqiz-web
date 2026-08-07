@@ -50,7 +50,7 @@
             <br/>
             <p class="label" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }">Domain(s) 
                 <ion-icon :icon="copyOutline" @click="copyPrompt('domain')" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
-                <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? contentData.domains : '')"></ion-icon>
+                <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? contentData.domains : '', '', true, { type: 'domains' })"></ion-icon>
                 <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="showAI('domain')"></ion-icon>
             </p>
             <div id="domain-wrapper">
@@ -119,7 +119,7 @@
                         {{ isContentSet('note', domain['id']) ?  `Part ${domain['id']}: Added`  : `Part ${domain['id']}: ${domain['part'] || domain['name']}`}}
                     </p>
                     <ion-icon :icon="copyOutline" @click="copyPrompt('note', domain)" id="copy"></ion-icon>
-                    <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('note', domain['id']) : '', 'html', false)"></ion-icon>
+                    <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('note', domain['id']) : '', 'html', false, { type: 'note', domainId: domain['id'] })"></ion-icon>
                     <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="showAI('note', domain)"></ion-icon>
                 </div>    
                 <div id="completed" v-if="isContentCompleted('note')">
@@ -136,7 +136,7 @@
                 <div v-for="domain in (contentData.domains as any)[selectedCertification.id]" class="question-title">
                     <p>{{ `Part ${domain['id']}: ${domain['part'] || domain['name']}` }}
                         <ion-icon :icon="copyOutline" @click="copyPrompt('question', domain)" id="copy"></ion-icon>
-                        <ion-icon :icon="scanOutline" class="open-icon" @click="openText((contentData.question as any)[selectedCertification.id] && (contentData.question as any)[selectedCertification.id][domain['id']] ? (contentData.question as any)[selectedCertification.id][domain['id']] : '', 'json')"></ion-icon>
+                        <ion-icon :icon="scanOutline" class="open-icon" @click="openText((contentData.question as any)[selectedCertification.id] && (contentData.question as any)[selectedCertification.id][domain['id']] ? (contentData.question as any)[selectedCertification.id][domain['id']] : '', 'json', true, { type: 'questions', domainId: domain['id'] })"></ion-icon>
                     </p>
 
                     <div id="content-wrapper" class="p-b-0">
@@ -370,7 +370,7 @@ const addDomain = async ()=> {
             try {
                 const result = JSON.parse(data);
                 if (result.length > 0) {
-                    (contentData.value.domains as any)[selectedCertification.value.id] = result;
+                    (contentData.value.domains as any)[selectedCertification.value.id] = normalizeDomains(result);
                     processed = true;
                     alert.dismiss();
                 }
@@ -638,6 +638,18 @@ const validateQuestions = (questions: any, domain: any)=> {
         }     
     });    
     return results.slice(0, 390);
+}
+
+const normalizeDomains = (domains: any) => {
+    const PARTS = ['A', 'B', 'C', 'D'];
+    const seen: Record<string, any> = {};
+    (Array.isArray(domains) ? domains : []).forEach((d: any) => {
+        const id = (d['id'] || '').toString().toUpperCase();
+        if (PARTS.includes(id) && !seen[id]) {
+            seen[id] = { id, part: d['part'] || d['name'] || '' };
+        }
+    });
+    return PARTS.map(p => seen[p] || { id: p, part: '' });
 }
 
 const generateCharId = (length = 8) => {
@@ -1174,7 +1186,7 @@ const onRemark = async ()=> {
     await alert.present();
 }
 
-const openText = async (text: any, type?: string, stringify?: boolean)=> {
+const openText = async (text: any, type?: string, stringify?: boolean, save?: any)=> {
     if(text == '') return;
 
     const mode = type || "json"; // Change to "markdown" if editing markdown!
@@ -1195,8 +1207,33 @@ const openText = async (text: any, type?: string, stringify?: boolean)=> {
         });
 
         await modal.present();
+        const { data } = await modal.onDidDismiss();
+        if (data && data.content != null && save) {
+            applyTextSave(data.content, save);
+        }
     } catch (e) {
         console.error('Failed to open text modal:', e);
+    }
+}
+
+const applyTextSave = (content: any, save: any)=> {
+    const certId = selectedCertification.value.id;
+    const parsed = (() => {
+        if (typeof content !== 'string') return content;
+        try { return JSON.parse(content); } catch (e) { return null; }
+    })();
+
+    if (save.type === 'domains') {
+        if (parsed) (contentData.value.domains as any) = parsed;
+    } else if (save.type === 'questions') {
+        if (parsed) {
+            if(!(contentData.value.question as any)[certId]) (contentData.value.question as any)[certId] = {};
+            (contentData.value.question as any)[certId][save.domainId] = parsed;
+        }
+    } else if (save.type === 'note') {
+        if(!(contentData.value.content as any)[certId]) (contentData.value.content as any)[certId] = {};
+        if(!(contentData.value.content as any)[certId]['note']) (contentData.value.content as any)[certId]['note'] = {};
+        (contentData.value.content as any)[certId]['note'][save.domainId] = content;
     }
 }
 
@@ -1212,7 +1249,6 @@ const AI_MODELS = [
 ];
 
 const AI_ENDPOINTS = [
-    "https://ai.n-o-me.workers.dev/",
     "https://kilo-ai.n-o.deno.net/"
 ];
 
@@ -1276,7 +1312,7 @@ const callAI = async (type: string, model: string, domain?: any)=> {
             const jsonString = jsonrepair(json); 
             const parsed = JSON.parse(jsonString);
             if (Array.isArray(parsed) && parsed.length > 0) {
-                (contentData.value.domains as any)[selectedCertification.value.id] = parsed;
+                (contentData.value.domains as any)[selectedCertification.value.id] = normalizeDomains(parsed);
             }
         } else if(type == 'note') {
             if(!(contentData.value.content as any)[selectedCertification.value.id]) (contentData.value.content as any)[selectedCertification.value.id] = {};

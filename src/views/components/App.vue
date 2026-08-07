@@ -12,6 +12,9 @@
             :debounce="500"
             @ionInput="onSearch"
         ></ion-searchbar>
+        <div id="filter" @click="openPriceFilter">
+            <span>Price: <b>{{ getPriceFilterLabel() }}</b></span> <ion-icon :icon="chevronDownOutline"></ion-icon>
+        </div>
         <div class="table-container">
             <table class="order-table">
                 <thead>
@@ -45,8 +48,8 @@
 </template>
 
 <script setup lang="ts">
-import { IonIcon, IonSearchbar, modalController } from '@ionic/vue';
-import { arrowForwardOutline } from 'ionicons/icons';
+import { IonIcon, IonSearchbar, actionSheetController, modalController } from '@ionic/vue';
+import { arrowForwardOutline, chevronDownOutline } from 'ionicons/icons';
 import Modal from '../components/CreateApp.vue';
 import { createClient } from '@libsql/client';
 import { ref } from 'vue';
@@ -55,6 +58,7 @@ import Skeleton from './Skeleton.vue';
 const loading = ref(true);
 const apps = ref([]);
 const searchQuery = ref("");
+const priceFilter = ref("all");
 
 const createApp = async () => {
     const modal = await modalController.create({
@@ -104,15 +108,60 @@ const init = async () => {
     });
 
     const query = searchQuery.value.trim();
-    const sql = query
-        ? "SELECT * FROM apps WHERE status = 'active' AND (name LIKE :q OR app_id LIKE :q) ORDER BY name LIMIT 150"
-        : "SELECT * FROM apps WHERE status = 'active' ORDER BY name LIMIT 150";
-    const args: any = query ? { q: `%${query}%` } : {};
+    const conditions: string[] = ["status = 'active'"];
+    const args: any = {};
+
+    if (query) {
+        conditions.push("(name LIKE :q OR app_id LIKE :q)");
+        args.q = `%${query}%`;
+    }
+    if (priceFilter.value === 'free') {
+        conditions.push("CAST(price AS REAL) = 0");
+    } else if (priceFilter.value === 'paid') {
+        conditions.push("CAST(price AS REAL) > 0");
+    }
+
+    const sql = `SELECT * FROM apps WHERE ${conditions.join(" AND ")} ORDER BY name LIMIT 150`;
 
     const result = await client.execute({ sql, args });
 
     loading.value = false;
     (apps.value as any) = result.rows;
+}
+
+const priceOptions = [{
+    text: 'All',
+    id: 'all'
+}, {
+    text: 'Free ($0)',
+    id: 'free'
+}, {
+    text: 'Paid',
+    id: 'paid'
+}];
+
+const openPriceFilter = async () => {
+    const actionSheet = await actionSheetController.create({
+        header: 'Filter by price',
+        buttons: priceOptions.map(v => {
+            return {
+                text: v['text'],
+                handler: () => {
+                    priceFilter.value = v['id'];
+                    loading.value = true;
+                    init();
+                }
+            }
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+};
+
+const getPriceFilterLabel = () => {
+    const label = priceOptions.find(v => v['id'] == priceFilter.value);
+    return label ? label['text'] : 'All';
 }
 
 const onSearch = (ev: any) => {
@@ -127,6 +176,27 @@ init();
 
 <style scoped>
 @import url(../../theme/app.css);
+
+#filter {
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    font-size: 0.9rem;
+    cursor: pointer;
+    color: #585858;
+    margin-bottom: 16px;
+    margin-top: 20px;
+}
+
+#filter b {
+    color: black;
+}
+
+#filter ion-icon {
+    margin-left: 5px;
+    margin-top: -1px;
+    color: #777777;
+}
 
 .blend-searchbar {
     margin: 16px 0;
@@ -143,7 +213,7 @@ init();
     /* border: 1px solid #d9d4d4; */
     border-radius: 10px;
     overflow: hidden;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     margin-top: 20px;    
 }
 

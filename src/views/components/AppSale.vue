@@ -111,13 +111,14 @@
 </template>
 
 <script setup lang="ts">
-import { actionSheetController, IonIcon, toastController } from '@ionic/vue';
+import { actionSheetController, IonIcon, modalController, toastController } from '@ionic/vue';
 import { createClient } from '@libsql/client';
 import { chevronDownOutline, copyOutline } from 'ionicons/icons';
 import { ref } from 'vue';
 import { Doughnut } from 'vue-chartjs';
 import getCountryISO2 from 'country-iso-3-to-2';
 import Skeleton from './Skeleton.vue';
+import MonthModal from '../components/MonthModal.vue';
 
 const loading = ref(true);
 const todayDate = ref("");
@@ -161,6 +162,8 @@ const apps = ref([]);
 const countries = ref([]);
 const summaries = ref([]);
 const filterStatus = ref("today");
+const selectedMonthDate = ref("");
+const customMonth = ref("");
 const filterOption = [{
     text: 'Today',
     id: 'today'
@@ -176,6 +179,9 @@ const filterOption = [{
 }, {
     text: 'Last 3 Months',
     id: 'last3m'
+}, {
+    text: 'Custom Month',
+    id: 'custommonth'
 }];
 
 const chartOptions = ref({
@@ -256,6 +262,12 @@ const getWhereFilter = ()=> {
     }
     if(filterStatus.value == 'last3m') {
         whereString = `WHERE date ${getLast3Month()} `;
+    }
+    if(filterStatus.value == 'custommonth') {
+        const parts = customMonth.value.split(' ');
+        const monthName = parts[0];
+        const year = parts[1];
+        whereString = `WHERE date LIKE '%${monthName}%${year}%' `;
     }
     return whereString;
 }
@@ -486,6 +498,10 @@ const onFilter = async ()=> {
             return {
                 text: v['text'],
                 handler: () => {
+                    if(v['id'] == 'custommonth') {
+                        openMonthPicker();
+                        return;
+                    }
                     loading.value = true;
                     filterStatus.value = v['id'];
                     init();
@@ -501,7 +517,36 @@ const onFilter = async ()=> {
     await actionSheet.present();
 }
 
+const openMonthPicker = async ()=> {
+    const modal = await modalController.create({
+        component: MonthModal,
+        mode: 'md',
+        breakpoints: [0, 1],
+        initialBreakpoint: 1
+    });
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
+    if(data) {
+        selectedMonthDate.value = data;
+        applyMonthFilter();
+    }
+}
+
+const applyMonthFilter = ()=> {
+    if(!selectedMonthDate.value) return;
+    const [year, month] = selectedMonthDate.value.split('-').map(Number);
+    const monthName = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long' }).format(new Date(Date.UTC(year, month - 1, 1)));
+    customMonth.value = `${monthName} ${year}`;
+    filterStatus.value = 'custommonth';
+    loading.value = true;
+    init();
+    getPerApps();
+    getPerCountries();
+    getSummary();
+}
+
 const getFilterLabel = ()=> {
+    if(filterStatus.value == 'custommonth') return customMonth.value || 'Custom Month';
     const label = filterOption.find(v => v['id'] == filterStatus.value);
     return label ? label['text'] : ''
 }
