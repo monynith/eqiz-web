@@ -271,10 +271,7 @@ const addContent = async (type: string, domain?: any)=> {
             handleContent(event.clipboardData?.getData('text') || '');
         });
         inputEl.addEventListener('input', (event: Event) => {
-            const ie = event as InputEvent;
-            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
-                handleContent((event.target as HTMLInputElement).value);
-            }
+            handleContent((event.target as HTMLInputElement).value);
         });
     }
 
@@ -308,25 +305,26 @@ const addQuestion = async (domain: any)=> {
         let processed = false;
         const handleQuestion = (data: string) => {
             if (processed || !data) return;
-            processed = true;
-            const result = JSON.parse(data);
-            let questions = result['data'] || result;
-            if (questions.length > 0) {
-                if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};
-                if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
-                const filterQuestions = validateQuestions(questions, domain);
-                (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;
+            try {
+                const result = JSON.parse(data);
+                let questions = result['data'] || result;
+                if (questions.length > 0) {
+                    if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};
+                    if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
+                    const filterQuestions = validateQuestions(questions, domain);
+                    (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;
+                    processed = true;
+                    alert.dismiss();
+                }
+            } catch (e) {
+                console.error(e);
             }
-            alert.dismiss();
         };
         inputEl.addEventListener('paste', (event: ClipboardEvent) => {
             handleQuestion(event.clipboardData?.getData('text') || '');
         });
         inputEl.addEventListener('input', (event: Event) => {
-            const ie = event as InputEvent;
-            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
-                handleQuestion((event.target as HTMLInputElement).value);
-            }
+            handleQuestion((event.target as HTMLInputElement).value);
         });
     }
 
@@ -359,21 +357,22 @@ const addDomain = async ()=> {
         let processed = false;
         const handleDomain = (data: string) => {
             if (processed || !data) return;
-            processed = true;
-            const result = JSON.parse(data);
-            if (result.length > 0) {
-                (contentData.value.domains as any)[selectedCertification.value.id] = result;
+            try {
+                const result = JSON.parse(data);
+                if (result.length > 0) {
+                    (contentData.value.domains as any)[selectedCertification.value.id] = result;
+                    processed = true;
+                    alert.dismiss();
+                }
+            } catch (e) {
+                console.error(e);
             }
-            alert.dismiss();
         };
         inputEl.addEventListener('paste', (event: ClipboardEvent) => {
             handleDomain(event.clipboardData?.getData('text') || '');
         });
         inputEl.addEventListener('input', (event: Event) => {
-            const ie = event as InputEvent;
-            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
-                handleDomain((event.target as HTMLInputElement).value);
-            }
+            handleDomain((event.target as HTMLInputElement).value);
         });
     }
 
@@ -440,38 +439,39 @@ const addCert = async ()=> {
         let processed = false;
         const handleCert = (data: string) => {
             if (processed || !data) return;
-            processed = true;
-            const result = JSON.parse(data);
-            if(result.length > 0){
-                const seenIds = new Set();
-                let duplicateId = false;
-                for (const item of result) {
-                    if (seenIds.has(item.id)) {
-                        duplicateId = true;
+            try {
+                const result = JSON.parse(data);
+                if(result.length > 0){
+                    const seenIds = new Set();
+                    let duplicateId = false;
+                    for (const item of result) {
+                        if (seenIds.has(item.id)) {
+                            duplicateId = true;
+                        }
+                        seenIds.add(item.id);
                     }
-                    seenIds.add(item.id);
+                    if(duplicateId == true) {
+                        toastController.create({
+                            message: 'Some ids are duplicate.',
+                            duration: 3500,
+                            position: 'bottom',
+                            color: "danger"
+                        }).then(t => t.present());
+                        return;
+                    }
+                    (contentData.value.certifications as any) = result;
+                    processed = true;
+                    alert.dismiss();
                 }
-                if(duplicateId == true) {
-                    toastController.create({
-                        message: 'Some ids are duplicate.',
-                        duration: 3500,
-                        position: 'bottom',
-                        color: "danger"
-                    }).then(t => t.present());
-                    return;
-                }
-                (contentData.value.certifications as any) = result;
+            } catch (e) {
+                console.error(e);
             }
-            alert.dismiss();
         };
         inputEl.addEventListener('paste', (event: ClipboardEvent) => {
             handleCert(event.clipboardData?.getData('text') || '');
         });
         inputEl.addEventListener('input', (event: Event) => {
-            const ie = event as InputEvent;
-            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
-                handleCert((event.target as HTMLInputElement).value);
-            }
+            handleCert((event.target as HTMLInputElement).value);
         });
     }
 
@@ -1104,10 +1104,7 @@ const onRemark = async ()=> {
             handleRemark(event.clipboardData?.getData('text') || '');
         });
         inputEl.addEventListener('input', (event: Event) => {
-            const ie = event as InputEvent;
-            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
-                handleRemark((event.target as HTMLInputElement).value);
-            }
+            handleRemark((event.target as HTMLInputElement).value);
         });
     }
 
