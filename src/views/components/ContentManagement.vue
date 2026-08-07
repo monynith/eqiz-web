@@ -250,24 +250,31 @@ const addContent = async (type: string, domain?: any)=> {
 
     const inputEl = document.getElementById('alert-paste-field') as HTMLInputElement;
     if (inputEl) {
-        inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
-            const pastedData = event.clipboardData?.getData('text');
-            if (pastedData && pastedData != '') {
-                const result = pastedData;
-                if(!(contentData.value.content as any)[selectedCertification.value.id]) {
-                    (contentData.value.content as any)[selectedCertification.value.id] = {};                
-                }
-                if(type == 'note') {
-                    if(!(contentData.value.content as any)[selectedCertification.value.id][type]) (contentData.value.content as any)[selectedCertification.value.id][type] = {};
-                    (contentData.value.content as any)[selectedCertification.value.id][type][domain['id']] = "";                    
-                    (contentData.value.content as any)[selectedCertification.value.id][type][domain['id']] = result;
-
-                } else {
-                    (contentData.value.content as any)[selectedCertification.value.id][type] = result;  
-                }   
-                // console.log((contentData.value.content as any));             
+        let processed = false;
+        const handleContent = (data: string) => {
+            if (processed || !data) return;
+            processed = true;
+            const result = data;
+            if(!(contentData.value.content as any)[selectedCertification.value.id]) {
+                (contentData.value.content as any)[selectedCertification.value.id] = {};
             }
-            await alert.dismiss();
+            if(type == 'note') {
+                if(!(contentData.value.content as any)[selectedCertification.value.id][type]) (contentData.value.content as any)[selectedCertification.value.id][type] = {};
+                (contentData.value.content as any)[selectedCertification.value.id][type][domain['id']] = "";
+                (contentData.value.content as any)[selectedCertification.value.id][type][domain['id']] = result;
+            } else {
+                (contentData.value.content as any)[selectedCertification.value.id][type] = result;
+            }
+            alert.dismiss();
+        };
+        inputEl.addEventListener('paste', (event: ClipboardEvent) => {
+            handleContent(event.clipboardData?.getData('text') || '');
+        });
+        inputEl.addEventListener('input', (event: Event) => {
+            const ie = event as InputEvent;
+            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
+                handleContent((event.target as HTMLInputElement).value);
+            }
         });
     }
 
@@ -298,23 +305,29 @@ const addQuestion = async (domain: any)=> {
 
     const inputEl = document.getElementById('alert-paste-field') as HTMLInputElement;
     if (inputEl) {
-        inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
-            const pastedData = event.clipboardData?.getData('text');
-            if (pastedData && pastedData != '') {
-                const result = JSON.parse(pastedData);
-                let questions = result['data'] || result;
-                // console.log(questions);
-                if (questions.length > 0) {    
-                    if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
-                    if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
-                    const filterQuestions = validateQuestions(questions, domain);
-                    // console.log(filterQuestions);
-                    (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
-                }
+        let processed = false;
+        const handleQuestion = (data: string) => {
+            if (processed || !data) return;
+            processed = true;
+            const result = JSON.parse(data);
+            let questions = result['data'] || result;
+            if (questions.length > 0) {
+                if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};
+                if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
+                const filterQuestions = validateQuestions(questions, domain);
+                (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;
             }
-            // console.log(contentData.value.question as any);
-            await alert.dismiss();
-        });        
+            alert.dismiss();
+        };
+        inputEl.addEventListener('paste', (event: ClipboardEvent) => {
+            handleQuestion(event.clipboardData?.getData('text') || '');
+        });
+        inputEl.addEventListener('input', (event: Event) => {
+            const ie = event as InputEvent;
+            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
+                handleQuestion((event.target as HTMLInputElement).value);
+            }
+        });
     }
 
     await alert.present();
@@ -343,15 +356,24 @@ const addDomain = async ()=> {
 
     const inputEl = document.getElementById('alert-paste-field') as HTMLInputElement;
     if (inputEl) {
-        inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
-            const pastedData = event.clipboardData?.getData('text');
-            if (pastedData && pastedData != '') {
-                const result = JSON.parse(pastedData);
-                if (result.length > 0) {                    
-                    (contentData.value.domains as any)[selectedCertification.value.id] = result;                    
-                }
+        let processed = false;
+        const handleDomain = (data: string) => {
+            if (processed || !data) return;
+            processed = true;
+            const result = JSON.parse(data);
+            if (result.length > 0) {
+                (contentData.value.domains as any)[selectedCertification.value.id] = result;
             }
-            await alert.dismiss();
+            alert.dismiss();
+        };
+        inputEl.addEventListener('paste', (event: ClipboardEvent) => {
+            handleDomain(event.clipboardData?.getData('text') || '');
+        });
+        inputEl.addEventListener('input', (event: Event) => {
+            const ie = event as InputEvent;
+            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
+                handleDomain((event.target as HTMLInputElement).value);
+            }
         });
     }
 
@@ -415,34 +437,41 @@ const addCert = async ()=> {
 
     const inputEl = document.getElementById('alert-paste-field') as HTMLInputElement;
     if (inputEl) {
-        inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
-            const pastedData = event.clipboardData?.getData('text');
-            if(pastedData && pastedData != ''){                
-                const result = JSON.parse(pastedData);
-                if(result.length > 0){
-                    const seenIds = new Set();
-                    let duplicateId = false;
-                    for (const item of result) {
-                        if (seenIds.has(item.id)) {
-                            duplicateId = true;                            
-                        }
-                        seenIds.add(item.id);
+        let processed = false;
+        const handleCert = (data: string) => {
+            if (processed || !data) return;
+            processed = true;
+            const result = JSON.parse(data);
+            if(result.length > 0){
+                const seenIds = new Set();
+                let duplicateId = false;
+                for (const item of result) {
+                    if (seenIds.has(item.id)) {
+                        duplicateId = true;
                     }
-                    if(duplicateId == true) {
-                        const toast = await toastController.create({
-                            message: 'Some ids are duplicate.',
-                            duration: 3500,
-                            position: 'bottom',
-                            color: "danger"
-                        });
-
-                        await toast.present();
-                        return;
-                    }
-                    (contentData.value.certifications as any) = result;
+                    seenIds.add(item.id);
                 }
+                if(duplicateId == true) {
+                    toastController.create({
+                        message: 'Some ids are duplicate.',
+                        duration: 3500,
+                        position: 'bottom',
+                        color: "danger"
+                    }).then(t => t.present());
+                    return;
+                }
+                (contentData.value.certifications as any) = result;
             }
-            await alert.dismiss();       
+            alert.dismiss();
+        };
+        inputEl.addEventListener('paste', (event: ClipboardEvent) => {
+            handleCert(event.clipboardData?.getData('text') || '');
+        });
+        inputEl.addEventListener('input', (event: Event) => {
+            const ie = event as InputEvent;
+            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
+                handleCert((event.target as HTMLInputElement).value);
+            }
         });
     }
 
@@ -1064,12 +1093,21 @@ const onRemark = async ()=> {
 
     const inputEl = document.getElementById('alert-paste-field') as HTMLInputElement;
     if (inputEl) {
-        inputEl.addEventListener('paste', async (event: ClipboardEvent) => {
-            const pastedData = event.clipboardData?.getData('text');
-            if(pastedData && pastedData != ''){                                
-                contentData.value.remark = pastedData;
+        let processed = false;
+        const handleRemark = (data: string) => {
+            if (processed || !data) return;
+            processed = true;
+            contentData.value.remark = data;
+            alert.dismiss();
+        };
+        inputEl.addEventListener('paste', (event: ClipboardEvent) => {
+            handleRemark(event.clipboardData?.getData('text') || '');
+        });
+        inputEl.addEventListener('input', (event: Event) => {
+            const ie = event as InputEvent;
+            if (ie.inputType === 'insertFromPaste' || ie.inputType === 'insertReplacementText') {
+                handleRemark((event.target as HTMLInputElement).value);
             }
-            await alert.dismiss();       
         });
     }
 
