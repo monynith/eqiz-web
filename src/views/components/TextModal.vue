@@ -4,6 +4,7 @@
             <div id="toolbar">
                 <span id="title">{{ title }}</span>
                 <div id="actions">
+                    <span v-if="mode !== 'markdown'" id="btn-edit" @click="toggleEdit">{{ editMode ? 'View' : 'Edit' }}</span>
                     <span id="btn-copy" @click="copyCode">Copy</span>
                     <span id="btn-close" @click="close">Close</span>
                 </div>
@@ -31,6 +32,7 @@ const props = defineProps<{
 const editorEl = ref<HTMLElement | null>(null);
 const renderedMarkdown = ref('');
 const aceFailed = ref(false);
+const editMode = ref(true);
 
 const mode = props.mode || 'json';
 const title = props.title || (mode === 'markdown' ? 'Markdown Viewer' : 'Live Editor');
@@ -65,6 +67,14 @@ const close = (): void => {
         const aceEl = editorEl.value as any;
         if (aceEl && aceEl.__ace) {
             aceEl.__ace.focus();
+        }
+    };
+
+    const toggleEdit = (): void => {
+        editMode.value = !editMode.value;
+        const aceEl = editorEl.value as any;
+        if (aceEl && aceEl.__ace) {
+            aceEl.__ace.setReadOnly(!editMode.value);
         }
     };
 
@@ -123,7 +133,7 @@ const copyCode = async (): Promise<void> => {
 
 onMounted(async () => {
     if (mode === 'markdown') {
-        loadStyle('https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown.min.css');
+        loadStyle('https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/5.5.1/github-markdown-dark.min.css');
         try {
             await loadScript('https://cdn.jsdelivr.net/npm/marked/marked.min.js');
             const marked = (window as any).marked;
@@ -146,6 +156,7 @@ onMounted(async () => {
             editor.session.setMode('ace/mode/' + mode);
             editor.session.setUseWorker(false);
             editor.setValue(getText(), -1);
+            editor.setReadOnly(!editMode.value);
             editor.setOptions({
                 fontFamily: "'Google Sans Code', 'Menlo', 'Monaco', 'Consolas', 'Ubuntu Mono', monospace",
                 fontSize: '14px',
@@ -209,7 +220,8 @@ onMounted(async () => {
     gap: 14px;
 }
 #btn-copy,
-#btn-close {
+#btn-close,
+#btn-edit {
     color: #fff;
     font-size: 16px;
     font-weight: 500;
@@ -266,6 +278,7 @@ onMounted(async () => {
     max-width: 980px;
     margin: 0 auto;
     padding: 15px;
-    background: #ffffff;
+    background: #0d1117;
+    color: #e6edf3;
 }
 </style>
