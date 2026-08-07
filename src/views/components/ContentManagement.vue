@@ -148,7 +148,7 @@
                             <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
                             <span>Completed</span>
                         </div>                   
-                        <ion-icon :icon="sparkles" id="ai-icon" @click="showAI('question', domain)"></ion-icon>        
+                        <ion-icon :icon="sparkles" id="ai-icon" @click="generateQuestionsUntil(domain)" title="Generate with AI until 390"></ion-icon>        
                     </div> 
 
                     <div class="add-item" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" @click="addQuestion(domain)">
@@ -1344,6 +1344,80 @@ const generateAll = async (kind: 'global' | 'notes')=> {
                         } catch (error: any) {
                             console.log(error);
                             await loading.dismiss();
+                            const alert = await alertController.create({
+                                header: 'Error: AI',                        
+                                message: error,
+                                buttons: ['Ok'],
+                            });
+                            await alert.present();
+                        }
+                    }, 0); 
+                }
+            }            
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const getQuestionCount = (domain: any)=> {
+    const q = (contentData.value.question as any)[selectedCertification.value.id];
+    return (q && q[domain['id']]) ? q[domain['id']].length : 0;
+}
+
+const generateQuestionsUntil = async (domain: any)=> {
+    if(selectedCertification.value.id == '' || !domain) return;
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        let cancelled = false;
+                        let dismissed = false;
+                        const dismiss = async ()=> {
+                            if(dismissed) return;
+                            dismissed = true;
+                            try { await loading.dismiss(); } catch (e) {}
+                        };
+
+                        const loading = await loadingController.create({
+                            message: `Generating... (${getQuestionCount(domain)}/390)`,
+                            buttons: [{
+                                text: 'Cancel',
+                                handler: ()=> {
+                                    cancelled = true;
+                                    return false;
+                                }
+                            }]
+                        } as any);
+                        await loading.present();
+
+                        try {
+                            let prev = getQuestionCount(domain);
+                            let iterations = 0;
+                            while(!cancelled && prev < 390 && iterations < 60) {
+                                iterations++;
+                                await callAI('question', v, domain);
+                                const current = getQuestionCount(domain);
+                                loading.message = `Generating... (${current}/390)`;
+                                if(current <= prev) break;
+                                prev = current;
+                            }
+                            await dismiss();
+                            const toast = await toastController.create({
+                                message: cancelled ? 'Generation cancelled.' : (prev >= 390 ? 'Reached 390 questions.' : 'No more new questions from AI.'),
+                                duration: 2500,
+                                position: 'bottom',
+                                color: cancelled ? 'warning' : 'secondary'
+                            });
+                            await toast.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await dismiss();
                             const alert = await alertController.create({
                                 header: 'Error: AI',                        
                                 message: error,
