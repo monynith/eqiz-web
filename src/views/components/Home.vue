@@ -45,6 +45,7 @@ import { createClient } from '@libsql/client';
 import Skeleton from './Skeleton.vue';
 import AppSaleModal from '../components/AppSale.vue';
 import EarningModal from '../components/Earning.vue';
+import MonthModal from '../components/MonthModal.vue';
 
 const indicatorFilter = ref("today");
 const todayDate = ref("");
@@ -53,6 +54,8 @@ const loadingPerfomance = ref(true);
 const performanceType = ref("thismonth")
 const processedAmount = ref(0);
 const appSale = ref(0);
+const selectedMonthDate = ref("");
+const customMonth = ref("");
 
 const indicatorData = ref({
     todaySale: 0,
@@ -210,7 +213,7 @@ const getLast7d = async () => {
     loadingPerfomance.value = false;
 }
 
-const getCurrentMonth = async () => {
+const getMonthData = async (monthName: string, year: number) => {
     const dbUrl = import.meta.env.VITE_DB_URL;
     const dbToken = import.meta.env.VITE_DB_TOKEN;
 
@@ -219,13 +222,6 @@ const getCurrentMonth = async () => {
         authToken: dbToken,
     });
 
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'UTC',
-        month: 'long' // 'long' returns the full name, 'short' returns 'Jun'
-    });
-
-    const currentMonth = formatter.format(new Date());
-    const year = new Date().getFullYear();
     const result = await client.execute({
         sql: `
             SELECT 
@@ -235,19 +231,16 @@ const getCurrentMonth = async () => {
                 SUM(COUNT(id)) OVER() AS total_app_sale
             FROM orders 
             WHERE status = 'active'
-            AND date LIKE '%${currentMonth}%${year}'
+            AND date LIKE '%${monthName}%${year}'
             GROUP BY date
             ORDER BY date ASC;
         `
     });
     if (result.rows && result.rows.length > 0) {
-        // console.log(result.rows);    
         processedAmount.value = Number(result.rows[0]['grand_total'] || 0);
         appSale.value = Number(result.rows[0]['total_app_sale'] || 0);
-        const now = new Date();
-        const currentYear = now.getUTCFullYear();
-        const currentMonthIndex = now.getUTCMonth(); // 0 = Jan, 5 = June, etc.        
-        const totalDaysInMonth = new Date(Date.UTC(currentYear, currentMonthIndex + 1, 0)).getUTCDate();
+        const targetIndex = resolveMonthIndex(monthName, year);
+        const totalDaysInMonth = new Date(Date.UTC(year, targetIndex + 1, 0)).getUTCDate();
 
         const formatter = new Intl.DateTimeFormat('en-US', {
             timeZone: 'UTC',
@@ -256,15 +249,14 @@ const getCurrentMonth = async () => {
             year: 'numeric'
         });
 
-        // Generate array of all formatted dates for this month
-        const allDatesInCurrentMonth = Array.from({ length: totalDaysInMonth }, (_, i) => {
-            const d = new Date(Date.UTC(currentYear, currentMonthIndex, i + 1));
+        // Generate array of all formatted dates for the target month
+        const allDatesInMonth = Array.from({ length: totalDaysInMonth }, (_, i) => {
+            const d = new Date(Date.UTC(year, targetIndex, i + 1));
             return formatter.format(d);
         });
-        // console.log(allDatesInCurrentMonth);
 
         const data: any = [];
-        allDatesInCurrentMonth.forEach(date => {
+        allDatesInMonth.forEach(date => {
             const amount = result.rows.find(v => v['date'] == date);
             if (amount && amount['total']) {
                 data.push({
@@ -291,6 +283,36 @@ const getCurrentMonth = async () => {
         };
     }
     loadingPerfomance.value = false;
+}
+
+const resolveMonthIndex = (monthName: string, year: number) => {
+    const probe = new Date(Date.UTC(year, 0, 15));
+    for (let i = 0; i < 12; i++) {
+        probe.setUTCMonth(i);
+        if (new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long' }).format(probe).toLowerCase() === monthName.toLowerCase()) {
+            return i;
+        }
+    }
+    return probe.getUTCMonth();
+}
+
+const getCurrentMonth = async () => {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'UTC',
+        month: 'long' // 'long' returns the full name, 'short' returns 'Jun'
+    });
+
+    const currentMonth = formatter.format(new Date());
+    const year = new Date().getFullYear();
+    await getMonthData(currentMonth, year);
+}
+
+const getCustomMonth = async () => {
+    if (!selectedMonthDate.value) return;
+    const [year, month] = selectedMonthDate.value.split('-').map(Number);
+    const monthName = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', month: 'long' }).format(new Date(Date.UTC(year, month - 1, 1)));
+    customMonth.value = `${monthName} ${year}`;
+    await getMonthData(monthName, year);
 }
 
 const getLastMonth = async () => {
@@ -619,6 +641,24 @@ const getPerformance = async () => {
     if (performanceType.value == 'lastmonth') getLastMonth();
     if (performanceType.value == 'last3m') get3Month();
     if (performanceType.value == 'last3m-monthly') get3MonthByMonthly();
+    if (performanceType.value == 'custommonth') getCustomMonth();
+}
+
+const openMonthPicker = async () => {
+    const modal = await modalController.create({
+        component: MonthModal,
+        mode: 'md',
+        breakpoints: [0, 1],
+        initialBreakpoint: 1
+    });
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
+    if (data) {
+        selectedMonthDate.value = data;
+        performanceType.value = 'custommonth';
+        loadingPerfomance.value = true;
+        getCustomMonth();
+    }
 }
 
 const getFilterPerformanceLabel = () => {
@@ -709,6 +749,11 @@ const getFilterPerformanceLabel = () => {
             label: 'Last 3 Months: ',
             value: `${startMonth} - ${endMonth} ${year}`
         }  
+    } else if (performanceType.value == 'custommonth') {
+        return {
+            label: 'Custom Month: ',
+            value: customMonth.value || `${selectedMonthDate.value}`
+        }  
     }
     return {
         label: '',
@@ -732,6 +777,9 @@ const filterPerformance = async () => {
     }, {
         text: 'Last 3 Months - Monthly',
         id: 'last3m-monthly'
+    }, {
+        text: 'Custom Month',
+        id: 'custommonth'
     }]
     const actionSheet = await actionSheetController.create({
         header: 'Select filter',
@@ -739,6 +787,10 @@ const filterPerformance = async () => {
             return {
                 text: v['text'],
                 handler: () => {
+                    if (v['id'] == 'custommonth') {
+                        openMonthPicker();
+                        return;
+                    }
                     performanceType.value = v['id'];
                     loadingPerfomance.value = true;
                     getPerformance();
