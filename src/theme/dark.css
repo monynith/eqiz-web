@@ -1,0 +1,227 @@
+/* Dark mode overrides for custom (non-Ionic) app chrome.
+   Ionic components are themed by @ionic/vue/css/palettes/dark.class.css
+   (activated by the `.ion-palette-dark` class on <html>). */
+
+.ion-palette-dark {
+  --eq-surface: #1e1e1e;
+  --eq-surface-2: #2a2a2a;
+  --eq-border: #333333;
+  --eq-text: #ffffff;
+  --eq-text-dim: #ffffff;
+  --eq-pink: #f0a8b8;
+}
+
+/* ---------- Dashboard chrome (style.css) ---------- */
+.ion-palette-dark .container {
+  background: radial-gradient(circle at 20% 30%, #1c1c1c 0%, #121212 70%, #0a0a0a 100%);
+}
+
+.ion-palette-dark .nav #logo span,
+.ion-palette-dark .nav-phone #logo span {
+  color: #ffffff;
+}
+
+.ion-palette-dark .nav .menu {
+  color: #ffffff;
+}
+
+.ion-palette-dark .nav .menu:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ion-palette-dark .nav .active {
+  background: #2a2a2a;
+  color: #ffffff;
+}
+
+.ion-palette-dark .content {
+  background: rgba(30, 30, 30, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--eq-text);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+}
+
+.ion-palette-dark .content #title {
+  color: #ffffff;
+}
+
+.ion-palette-dark .nav-phone ion-icon {
+  color: #ffffff;
+}
+
+/* Default text color inside content area */
+.ion-palette-dark .content,
+.ion-palette-dark .content * {
+  color: var(--eq-text) !important;
+}
+
+/* ---------- Generic light cards / containers ---------- */
+.ion-palette-dark .indicator,
+.ion-palette-dark #line-chart,
+.ion-palette-dark .table-container,
+.ion-palette-dark .store,
+.ion-palette-dark #summary,
+.ion-palette-dark .block,
+.ion-palette-dark #template-wrapper,
+.ion-palette-dark #app-wrapper,
+.ion-palette-dark .cert-items,
+.ion-palette-dark .domain-items,
+.ion-palette-dark #add-remark-btn,
+.ion-palette-dark #question-wrapper,
+.ion-palette-dark #app-id,
+.ion-palette-dark #app-name,
+.ion-palette-dark #cert,
+.ion-palette-dark #store-wrapper,
+.ion-palette-dark #filter,
+.ion-palette-dark #create-btn-wrapper,
+.ion-palette-dark #pagination,
+.ion-palette-dark #total-wrapper,
+.ion-palette-dark .header-wrapper,
+.ion-palette-dark #img-pick,
+.ion-palette-dark #chip-wrapper ion-chip,
+.ion-palette-dark .question-title,
+.ion-palette-dark .add-item,
+.ion-palette-dark #download-btn-wrapper,
+.ion-palette-dark #template-wrapper #left,
+.ion-palette-dark #template-wrapper #right,
+.ion-palette-dark #template-wrapper #content-wrapper {
+  background: var(--eq-surface) !important;
+  border-color: var(--eq-border) !important;
+  color: var(--eq-text) !important;
+}
+
+/* ---------- Tables ---------- */
+.ion-palette-dark .order-table th,
+.ion-palette-dark .table th {
+  background-color: var(--eq-surface-2) !important;
+  color: var(--eq-text) !important;
+  border-color: var(--eq-border) !important;
+}
+
+.ion-palette-dark .order-table td,
+.ion-palette-dark .table td {
+  color: #dcdcdc !important;
+  border-color: #2a2a2a !important;
+}
+
+.ion-palette-dark .t-body tr,
+.ion-palette-dark tbody tr {
+  background: var(--eq-surface) !important;
+}
+
+.ion-palette-dark .order-table tr:last-child td,
+.ion-palette-dark .table tr:last-child td {
+  border-color: var(--eq-border) !important;
+}
+
+.ion-palette-dark .total-cell,
+.ion-palette-dark .mono-text,
+.ion-palette-dark .date-cell .main-text,
+.ion-palette-dark .date-cell .sub-text,
+.ion-palette-dark .product-cell {
+  color: var(--eq-text) !important;
+}
+
+.ion-palette-dark .order-table ion-icon {
+  color: var(--eq-text) !important;
+}
+
+/* Opacity < 1 dims text into invisibility on dark backgrounds */
+.ion-palette-dark .inner-title,
+.ion-palette-dark #ai-icon,
+.ion-palette-dark #pagination ion-icon {
+  opacity: 1 !important;
+}
+
+.ion-palette-dark #pagination ion-icon {
+  background: var(--eq-surface-2) !important;
+  color: var(--eq-text) !important;
+}
+
+/* Elevated cards for more contrast in dark mode */
+.ion-palette-dark .indicator {
+  background: #2b2b2b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Performance label should be white in dark mode */
+.ion-palette-dark #data-wrapper #label {
+  color: #ffffff !important;
+}
+
+/* ---------- Muted pink / pale-violet accents (dark mode) ---------- */
+.ion-palette-dark #img-pick,
+.ion-palette-dark .add-item,
+.ion-palette-dark #template-wrapper #content-wrapper {
+  background: rgba(255, 182, 193, 0.12) !important;
+  border-color: rgba(255, 182, 193, 0.4) !important;
+}
+
+.ion-palette-dark #img-pick {
+  color: #f0a8b8 !important;
+}
+
+.ion-palette-dark #img-label,
+.ion-palette-dark #template-wrapper #content-wrapper .add-button {
+  color: #f0a8b8 !important;
+}
+
+.ion-palette-dark .add-item {
+  color: #f0a8b8 !important;
+}
+
+.ion-palette-dark #template-wrapper #content-wrapper {
+  border: 1px dashed rgba(255, 182, 193, 0.4) !important;
+}
+
+.ion-palette-dark .add-item {
+  border: 1px dashed rgba(255, 182, 193, 0.4) !important;
+}
+
+/* Keep palevioletred text/badges readable but slightly softened */
+.ion-palette-dark .cert-items #ind {
+  background-color: rgba(219, 112, 147, 0.85) !important;
+  color: #fff !important;
+}
+
+/* ---------- Muted text helpers ---------- */
+.ion-palette-dark .key,
+.ion-palette-dark .my-custom-label,
+.ion-palette-dark .label,
+.ion-palette-dark #label,
+.ion-palette-dark #filter,
+.ion-palette-dark #filter ion-icon,
+.ion-palette-dark #data-wrapper #label span,
+.ion-palette-dark #data-wrapper #amount,
+.ion-palette-dark #total-label #amount,
+.ion-palette-dark #indicator-filter,
+.ion-palette-dark .indicator .key,
+.ion-palette-dark .store #key,
+.ion-palette-dark .cert-items p {
+  color: var(--eq-text-dim) !important;
+}
+
+/* "Completed" indicators stay green in dark mode */
+.ion-palette-dark #content-wrapper #completed,
+.ion-palette-dark #question-wrapper #completed,
+.ion-palette-dark #completed {
+  color: #4ade80 !important;
+}
+
+.ion-palette-dark #completed ion-icon {
+  color: #4ade80 !important;
+}
+
+/* All pink / pale-violet accents become a soft pink in dark mode */
+.ion-palette-dark .create-btn,
+.ion-palette-dark .create-btn-standalone,
+.ion-palette-dark .question-title,
+.ion-palette-dark #add-remark-btn,
+.ion-palette-dark #ai-icon,
+.ion-palette-dark .inner-title,
+.ion-palette-dark .add-item ion-icon,
+.ion-palette-dark #template-wrapper #content-wrapper .add-button {
+  color: var(--eq-pink) !important;
+}
+

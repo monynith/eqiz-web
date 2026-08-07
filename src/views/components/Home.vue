@@ -39,7 +39,8 @@ import { Line } from 'vue-chartjs'
 import 'chart.js/auto'
 import { chevronDownOutline } from 'ionicons/icons';
 import { actionSheetController, IonIcon, modalController } from '@ionic/vue';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
+import { isDark } from '../../theme/theme';
 import { createClient } from '@libsql/client';
 import Skeleton from './Skeleton.vue';
 import AppSaleModal from '../components/AppSale.vue';
@@ -71,34 +72,47 @@ const chartData = ref({
     }]
 });
 
-const chartOptions = ref({
-    responsive: true,
-    plugins: {
-        legend: {
-            display: false // This hides the dataset label at the top
-        }
-    },
-    scales: {
-        x: {
-            grid: {
-                display: false // Removes vertical grid lines
-            },
-            ticks: {
-                font: {
-                    family: '"PT Sans"'
-                },
-                color: '#000000',
+const buildChartOptions = () => {
+    const tickColor = isDark.value ? '#cfcfcf' : '#000000';
+    const gridColor = isDark.value ? 'rgba(255, 255, 255, 0.08)' : undefined;
+    return {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false // This hides the dataset label at the top
             }
         },
-        y: {
-            ticks: {
-                font: {
-                    family: '"PT Sans"' // Target the y-axis labels
+        scales: {
+            x: {
+                grid: {
+                    display: false // Removes vertical grid lines
                 },
-                color: '#000000',
+                ticks: {
+                    font: {
+                        family: '"PT Sans"'
+                    },
+                    color: tickColor,
+                }
+            },
+            y: {
+                grid: {
+                    color: gridColor
+                },
+                ticks: {
+                    font: {
+                        family: '"PT Sans"' // Target the y-axis labels
+                    },
+                    color: tickColor,
+                }
             }
         }
-    }
+    };
+};
+
+const chartOptions = ref(buildChartOptions());
+
+watch(isDark, () => {
+    chartOptions.value = buildChartOptions();
 });
 
 const getToday = async () => {

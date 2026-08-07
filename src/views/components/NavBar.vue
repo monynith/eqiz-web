@@ -23,13 +23,18 @@
     <div class="menu" :class="{'active' : action == 'reports'}" @click="navi('reports')">
         <ion-icon :icon="flagOutline"></ion-icon> 
         <span>Reports</span>
-    </div>   
+    </div>
+    <div class="menu theme-toggle" @click="toggleDark" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+        <ion-icon :icon="isDark ? sunnyOutline : moonOutline"></ion-icon>
+        <span>{{ isDark ? 'Light Mode' : 'Dark Mode' }}</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { IonIcon } from '@ionic/vue';
-import { albumsOutline, analyticsOutline, flagOutline, layersOutline, readerOutline } from 'ionicons/icons';
+import { albumsOutline, analyticsOutline, flagOutline, layersOutline, readerOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
+import { isDark, toggleDark } from '../../theme/theme';
 
 const props = defineProps({
   action: String

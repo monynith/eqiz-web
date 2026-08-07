@@ -28,12 +28,15 @@ import '@ionic/vue/css/display.css';
  */
 
 /* @import '@ionic/vue/css/palettes/dark.always.css'; */
-/* @import '@ionic/vue/css/palettes/dark.class.css'; */
+import '@ionic/vue/css/palettes/dark.class.css';
 // import '@ionic/vue/css/palettes/dark.system.css';
 
 /* Theme variables */
 import './theme/variables.css';
 import './theme/style.css';
+import './theme/dark.css';
+
+import { initTheme, isDark } from './theme/theme';
 
 const app = createApp(App)
   .use(IonicVue)
@@ -114,16 +117,19 @@ import { SystemBars, SystemBarsStyle } from '@capacitor/core';
 
 const init = async ()=> {
   try {
+    const dark = isDark.value;
+    const color = dark ? '#121212' : '#f5f0f0';
     await StatusBar.setOverlaysWebView({ overlay: false });
-    await StatusBar.setBackgroundColor({ color: "#f5f0f0" })
-    await EdgeToEdge.setStatusBarColor({ color: '#f5f0f0' });
-    await SystemBars.setStyle({ style: SystemBarsStyle.Light });
+    await StatusBar.setBackgroundColor({ color });
+    await EdgeToEdge.setStatusBarColor({ color });
+    await SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light });
   } catch (error) {
     console.warn('StatusBar plugin not available on web:', error);
   }
 }
 
 router.isReady().then(() => {
+  initTheme();
   app.mount('#app');
   init();
 });
