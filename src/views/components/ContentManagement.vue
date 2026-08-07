@@ -177,6 +177,7 @@ import { ref } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
 import { jsonrepair } from 'jsonrepair';
+import { CapacitorHttp } from '@capacitor/core';
 
 const isSaving = ref(false);
 const isLoading = ref(false);
@@ -1214,24 +1215,24 @@ const callAI = async (type: string, model: string, domain?: any)=> {
     const str = buildPrompt(type, domain);             
     const key = localStorage.getItem("KILO_KEY") || '';
 
-    const response = await fetch(`https://kilo-ai.n-o.deno.net/`, {
-        method: "POST", 
+    const response = await CapacitorHttp.post({
+        url: `https://kilo-ai.n-o.deno.net/`,
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({
+        data: {
             prompt: JSON.stringify(str),
             model,
             key
-        })
+        }
     });
 
-    if (!response.ok) {                              
-        const error = await response.json();                         
+    if (response.status < 200 || response.status >= 300) {
+        const error = response.data;
         throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
     }
 
-    const result = await response.json();
+    const result = response.data;
     const json = result['content'] || '';
     if (json && json != '') {
         if(type == 'calc') return json;
