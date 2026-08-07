@@ -8,7 +8,7 @@
                     <span id="btn-close" @click="close">Close</span>
                 </div>
             </div>
-            <div id="modal-editor-wrapper">
+            <div id="modal-editor-wrapper" @click="focusEditor" @touchend="focusEditor">
                 <div v-if="mode === 'markdown'" class="markdown-body" v-html="renderedMarkdown"></div>
                 <div v-else-if="!aceFailed" id="editor" ref="editorEl"></div>
                 <textarea v-else readonly class="fallback-text" :value="getText()"></textarea>
@@ -61,7 +61,14 @@ const close = (): void => {
     modalController.dismiss();
 };
 
-const getText = (): string => {
+    const focusEditor = (): void => {
+        const aceEl = editorEl.value as any;
+        if (aceEl && aceEl.__ace) {
+            aceEl.__ace.focus();
+        }
+    };
+
+    const getText = (): string => {
     const aceEl = editorEl.value as any;
     if (mode !== 'markdown' && aceEl && aceEl.__ace) {
         return aceEl.__ace.getValue();
@@ -140,14 +147,18 @@ onMounted(async () => {
             editor.session.setUseWorker(false);
             editor.setValue(getText(), -1);
             editor.setOptions({
-                fontFamily: "'Google Sans Code', monospace",
+                fontFamily: "'Google Sans Code', 'Menlo', 'Monaco', 'Consolas', 'Ubuntu Mono', monospace",
                 fontSize: '14px',
                 showPrintMargin: false,
                 useSoftTabs: true,
                 tabSize: 2
             });
             (editorEl.value as any).__ace = editor;
+            editor.focus();
             setTimeout(() => editor.resize(), 350);
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(() => editor.resize(true));
+            }
         }
     } catch (e) {
         console.error(e);
@@ -218,6 +229,11 @@ onMounted(async () => {
     bottom: 0;
     width: 100%;
     height: 100%;
+}
+#editor,
+#editor * {
+    font-family: 'Menlo', 'Monaco', 'Consolas', 'Ubuntu Mono', 'Courier New', monospace !important;
+    font-size: 14px !important;
 }
 .fallback-text {
     position: absolute;
