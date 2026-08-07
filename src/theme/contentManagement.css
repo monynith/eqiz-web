@@ -419,6 +419,13 @@
     color: #9a9a9a;
 }
 
+.ai-icon {
+    font-size: 0.8rem;
+    margin-left: 5px;
+    color: #9a9a9a;
+    cursor: pointer;
+}
+
 #ai-icon {
     font-size: 1rem;
     color: palevioletred;

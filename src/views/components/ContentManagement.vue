@@ -73,6 +73,7 @@
                     </p>
                     <ion-icon :icon="copyOutline" @click="copyPrompt('glossary')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
                     <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('glossary') : '', 'javascript', false)"></ion-icon>
+                    <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="showAI('glossary')"></ion-icon>
                 </div>    
                 <div class="add-wrapper">
                     <p class="add-button" @click="addContent('cheatsheet')">
@@ -81,6 +82,7 @@
                     </p>
                     <ion-icon :icon="copyOutline" @click="copyPrompt('cheatsheet')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
                     <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('cheatsheet') : '', 'javascript', false)"></ion-icon>
+                    <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="showAI('cheatsheet')"></ion-icon>
                 </div>   
                 <div class="add-wrapper">
                     <p class="add-button" @click="addContent('examtip')">
@@ -89,6 +91,7 @@
                     </p>
                     <ion-icon :icon="copyOutline" @click="copyPrompt('examtip')" id="copy" :style="{ cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }"></ion-icon>
                     <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('examtip') : '', 'javascript', false)"></ion-icon>
+                    <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="showAI('examtip')"></ion-icon>
                 </div>    
                 <div id="completed" v-if="isContentCompleted()">
                     <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
@@ -114,6 +117,7 @@
                     </p>
                     <ion-icon :icon="copyOutline" @click="copyPrompt('note', domain)" id="copy"></ion-icon>
                     <ion-icon :icon="scanOutline" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" class="open-icon" @click="openText(selectedCertification['id'] != '' ? getContent('note', domain['id']) : '', 'html', false)"></ion-icon>
+                    <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="showAI('note', domain)"></ion-icon>
                 </div>    
                 <div id="completed" v-if="isContentCompleted('note')">
                     <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
@@ -140,7 +144,7 @@
                             <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
                             <span>Completed</span>
                         </div>                   
-                        <ion-icon :icon="sparkles" id="ai-icon" @click="showAI(domain)"></ion-icon>        
+                        <ion-icon :icon="sparkles" id="ai-icon" @click="showAI('question', domain)"></ion-icon>        
                     </div> 
 
                     <div class="add-item" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" @click="addQuestion(domain)">
@@ -483,8 +487,7 @@ const removeCert = (idx: number, type: string)=> {
     if(type == 'domain') (contentData.value.domains as any)[selectedCertification.value.id].splice(idx, 1);
 }
 
-const copyPrompt = (type: string, domain?: any) => {
-    if(contentData.value.certifications.length <=0 && type != 'cert') return;
+const buildPrompt = (type: string, domain?: any) => {
     let str = "";
     if(type == 'cert') str = certification.replaceAll('$RP{app-name}', contentData.value.appName);
     if(type == 'domain') {
@@ -510,6 +513,12 @@ const copyPrompt = (type: string, domain?: any) => {
             str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
         }
     }
+    return str;
+}
+
+const copyPrompt = (type: string, domain?: any) => {
+    if(contentData.value.certifications.length <=0 && type != 'cert') return;
+    const str = buildPrompt(type, domain);
     navigator.clipboard.writeText(str)
     .then(async () => {      
         const toast = await toastController.create({
@@ -1137,7 +1146,10 @@ const openText = async (text: any, type?: string, stringify?: boolean)=> {
     }
 }
 
-const showAI = async (domain: any)=> {
+const showAI = async (type: string, domain?: any)=> {
+    if(type != 'cert' && selectedCertification.value.id == '') return;
+    if((type == 'note' || type == 'question') && !domain) return;
+
     const model = [
         "google/gemini-3.5-flash-lite",
         "google/gemini-3.1-flash-lite",
@@ -1159,16 +1171,10 @@ const showAI = async (domain: any)=> {
                             message: 'Generating...', 
                             duration: 1000 * 120                   
                         });
-
+ 
                         loading.present();   
                         
-                        let str = '';
-                        str = question.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']).replaceAll('$RP{domain-name}', domain['part'] || domain['name']);        
-                        if(calculation.value == false) {
-                            str = str.replaceAll('$RP{comment-start}', '<!--').replaceAll('$RP{comment-end}', '-->');
-                        } else {
-                            str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
-                        }         
+                        const str = buildPrompt(type, domain);             
                                                 
                         const key = localStorage.getItem("KILO_KEY") || '';
 
@@ -1196,16 +1202,29 @@ const showAI = async (domain: any)=> {
                             // console.log(result['content']);                                            
                             const json = result['content'] || '';
                             if (json && json != '') {
-                                const jsonString = jsonrepair(json); 
-                                const result = JSON.parse(jsonString);
-                                let questions = result['data'] || result;
-                                // console.log(questions);
-                                if (questions.length > 0) {    
-                                    if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
-                                    if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
-                                    const filterQuestions = validateQuestions(questions, domain);
-                                    // console.log(filterQuestions);
-                                    (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
+                                if(type == 'question') {
+                                    const jsonString = jsonrepair(json); 
+                                    const parsed = JSON.parse(jsonString);
+                                    const questions = parsed['data'] || parsed;
+                                    if (questions.length > 0) {    
+                                        if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
+                                        if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
+                                        const filterQuestions = validateQuestions(questions, domain);
+                                        (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;                    
+                                    }
+                                } else if(type == 'domain') {
+                                    const jsonString = jsonrepair(json); 
+                                    const parsed = JSON.parse(jsonString);
+                                    if (Array.isArray(parsed) && parsed.length > 0) {
+                                        (contentData.value.domains as any)[selectedCertification.value.id] = parsed;
+                                    }
+                                } else if(type == 'note') {
+                                    if(!(contentData.value.content as any)[selectedCertification.value.id]) (contentData.value.content as any)[selectedCertification.value.id] = {};
+                                    if(!(contentData.value.content as any)[selectedCertification.value.id][type]) (contentData.value.content as any)[selectedCertification.value.id][type] = {};
+                                    (contentData.value.content as any)[selectedCertification.value.id][type][domain['id']] = json;
+                                } else {
+                                    if(!(contentData.value.content as any)[selectedCertification.value.id]) (contentData.value.content as any)[selectedCertification.value.id] = {};
+                                    (contentData.value.content as any)[selectedCertification.value.id][type] = json;
                                 }
                             }
 
