@@ -1369,6 +1369,7 @@ const applyTextSave = (content: any, save: any)=> {
 }
 
 const AI_MODELS = [
+    "gemini/official",
     "google/gemini-3.5-flash-lite",
     "google/gemini-3.1-flash-lite",
     "google/gemini-3.5-flash",
@@ -1376,7 +1377,7 @@ const AI_MODELS = [
     "inclusionai/ling-3.0-flash:free",
     "kilo-auto/free",
     "stepfun/step-3.7-flash:free",
-    "google/gemini-2.5-flash"
+    "google/gemini-2.5-flash"    
 ];
 
 const AI_ENDPOINTS = [
@@ -1400,34 +1401,8 @@ const postAI = async (url: string, data: any) => {
     return response;
 };
 
-const callAI = async (type: string, model: string, domain?: any)=> {
-    const str = buildPrompt(type, domain);             
-    const key = localStorage.getItem("KILO_KEY") || '';
-
-    const data = {
-        prompt: JSON.stringify(str),
-        model,
-        key
-    };
-
-    let lastError: any;
-    let response: any;
-    for (const url of AI_ENDPOINTS) {
-        try {
-            response = await postAI(url, data);
-            break;
-        } catch (e) {
-            console.error(`AI endpoint failed: ${url}`, e);
-            lastError = e;
-        }
-    }
-
-    if (!response) {
-        throw lastError || new Error("All AI endpoints failed");
-    }
-
-    const result = response.data;
-    const json = result['content'] || '';
+const processAIResult = (type: string, domain: any, content: string) => {
+    const json = content || '';
     if (json && json != '') {
         if(type == 'calc') return json;
         if(type == 'question') {
@@ -1454,6 +1429,83 @@ const callAI = async (type: string, model: string, domain?: any)=> {
             (contentData.value.content as any)[selectedCertification.value.id][type] = json;
         }
     }
+}
+
+const callAI = async (type: string, model: string, domain?: any)=> {
+    if (model === 'gemini/official') {
+        return await callGemini(type, domain);
+    }
+
+    const str = buildPrompt(type, domain);             
+    const key = localStorage.getItem("KILO_KEY") || '';
+
+    const data = {
+        prompt: JSON.stringify(str),
+        model,
+        key
+    };
+
+    let lastError: any;
+    let response: any;
+    for (const url of AI_ENDPOINTS) {
+        try {
+            response = await postAI(url, data);
+            break;
+        } catch (e) {
+            console.error(`AI endpoint failed: ${url}`, e);
+            lastError = e;
+        }
+    }
+
+    if (!response) {
+        throw lastError || new Error("All AI endpoints failed");
+    }
+
+    const result = response.data;
+    return processAIResult(type, domain, result['content'] || '');
+}
+
+const callGemini = async (type: string, domain?: any)=> {
+    const str = buildPrompt(type, domain);             
+    const model = localStorage.getItem("GEMINI_MODEL");
+    const key = localStorage.getItem("GEMINI_KEY") || '';
+
+    const response = await CapacitorHttp.post({
+        url: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": key
+        },
+        data: {
+            "contents": [
+                {
+                    "parts": [
+                        {
+                            "text": JSON.stringify(str)
+                        }
+                    ]
+                }
+            ],
+            "generationConfig": {
+                "thinkingConfig": {
+                    "thinkingLevel": "LOW"
+                }
+            }
+        }
+    });
+
+    if (response.status < 200 || response.status >= 300) {
+        const error = response.data;
+        throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
+    }
+
+    const result = response.data;
+    const json = result && result['candidates'] && result['candidates'][0] && result['candidates'][0]['content'] && result['candidates'][0]['content']['parts'] && result['candidates'][0]['content']['parts'][0] && result['candidates'][0]['content']['parts'][0]['text']
+        ? result['candidates'][0]['content']['parts'][0]['text'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim()
+        : '';
+
+    return processAIResult(type, domain, json);
 }
 
 const showAI = async (type: string, domain?: any)=> {
@@ -1647,7 +1699,7 @@ const checkCalculation = async ()=> {
 
                         try {
                             const answer = await callAI('calc', v);
-                            const match = answer.match(/HAS_CALCULATION:\s*(yes|no)/i);
+                            const match = (answer || '').match(/HAS_CALCULATION:\s*(yes|no)/i);
                             if(match) {
                                 calculation.value = /^yes/i.test(match[1]);
                             }
