@@ -13,8 +13,10 @@
 
 <script setup lang="ts">
 import { menuOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
-import { actionSheetController, IonIcon } from '@ionic/vue';
+import { actionSheetController, IonIcon, useIonRouter } from '@ionic/vue';
 import { isDark, toggleDark } from '../../theme/theme';
+
+const ionRouter = useIonRouter();
 
 const menu = async ()=> {
     const actionSheet = await actionSheetController.create({
@@ -51,9 +53,7 @@ const menu = async ()=> {
 }
 
 const movePage = (page: string)=> {
-    setTimeout(()=> {
-        window.location.href = `/${page}`
-    }, 150)    
+    ionRouter.navigate('/' + page, 'none');
 }
 
 </script>

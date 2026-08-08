@@ -1,5 +1,5 @@
 <template>
-  <div class="nav">
+  <div class="nav" :class="{ 'collapsed': collapsed }">
     <div id="logo">
         <img src="../../assets/logo.png" />
         <span>Eqiz Studio</span>
@@ -28,20 +28,28 @@
         <ion-icon :icon="isDark ? sunnyOutline : moonOutline"></ion-icon>
         <span>{{ isDark ? 'Light Mode' : 'Dark Mode' }}</span>
     </div>
+    <div class="collapse-toggle" @click="collapsed = !collapsed" :title="collapsed ? 'Expand' : 'Collapse'">
+        <ion-icon :icon="collapsed ? chevronForwardOutline : chevronBackOutline"></ion-icon>
+        <span>{{ collapsed ? 'Expand' : 'Collapse' }}</span>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { IonIcon } from '@ionic/vue';
-import { albumsOutline, analyticsOutline, flagOutline, layersOutline, readerOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
+import { IonIcon, useIonRouter } from '@ionic/vue';
+import { albumsOutline, analyticsOutline, chevronBackOutline, chevronForwardOutline, flagOutline, layersOutline, readerOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
 import { isDark, toggleDark } from '../../theme/theme';
+import { ref } from 'vue';
 
 const props = defineProps({
   action: String
 })
 
+const ionRouter = useIonRouter();
+const collapsed = ref(false)
+
 const navi = (action: string)=> {
-    window.location.href = '/' + action;
+    ionRouter.navigate('/' + action, 'none');
 }
 
 </script>

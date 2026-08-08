@@ -9,7 +9,7 @@
             mode="md"
             v-model="searchQuery"
             placeholder="Search by name or ID"
-            :debounce="500"
+            :debounce="1000"
             @ionInput="onSearch"
         ></ion-searchbar>
         <div id="filter" @click="openPriceFilter">

@@ -16,7 +16,9 @@
 </template>
 
 <script setup lang="ts">
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/vue';
+import { IonContent, IonPage } from '@ionic/vue';
+import { ref, watch } from 'vue';
+import { useRoute } from 'vue-router';
 import NavBar from './components/NavBar.vue';
 import MainContent from './components/Content.vue';
 import Home from './components/Home.vue';
@@ -25,7 +27,13 @@ import Order from './components/Order.vue';
 import NavBarPhone from './components/NavBarPhone.vue';
 import ContentManagement from './components/ContentManagement.vue';
 
-let action = 'home';
+const route = useRoute();
+const action = ref((route.path.slice(1) || 'home'));
+
+watch(() => route.path, (p) => {
+  action.value = p.slice(1) || 'home';
+});
+
 const title: Record<string, string> = { 
   'home': "Dashboard",
   'orders': "Orders",
@@ -33,11 +41,6 @@ const title: Record<string, string> = {
   'contents': "Content Management",
   'reports': "Reports"
 }
-
-// check path
-const path = window.location.pathname.slice(1);;
-action = path;
-
 </script>
 
 <style scoped>

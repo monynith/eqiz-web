@@ -122,7 +122,7 @@ const init = async ()=> {
     await StatusBar.setOverlaysWebView({ overlay: false });
     await StatusBar.setBackgroundColor({ color });
     await EdgeToEdge.setStatusBarColor({ color });
-    await SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light });
+    await SystemBars.setStyle({ style: dark ? SystemBarsStyle.Light : SystemBarsStyle.Dark });
   } catch (error) {
     console.warn('StatusBar plugin not available on web:', error);
   }
