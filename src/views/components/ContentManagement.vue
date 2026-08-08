@@ -148,7 +148,11 @@
                             <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
                             <span>Completed</span>
                         </div>                   
-                        <ion-icon :icon="sparkles" id="ai-icon" @click="generateQuestionsUntil(domain)" title="Generate with AI until 390"></ion-icon>        
+                        <div class="ai-actions">
+                            <ion-icon :icon="checkmarkDoneSharp" id="validate-icon" @click="validateQuestionsQuality(domain)" title="Validate question quality (kilo/free)"></ion-icon>
+                            <ion-icon :icon="sparkles" id="ai-icon" @click="generateQuestionsUntil(domain)" title="Generate with AI until 390"></ion-icon>
+                        </div>
+
                     </div> 
 
                     <div class="add-item" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" @click="addQuestion(domain)">
@@ -668,11 +672,138 @@ const shortenString = (str: any)=> {
     return btoa(encodeURIComponent(JSON.stringify(str)));
 }
 
-const deShortenString = (str: string)=> {
+const deShortenString = (str: string): any => {
     if(!str || str == '') return '';
-    const decodedString = atob(str);
-    const jsonString = decodeURIComponent(decodedString);                    
-    return JSON.parse(jsonString);
+    // Split the (potentially huge) string before decoding/parsing.
+    // iOS Safari's atob/decodeURIComponent choke on very long strings, so we
+    // process it in chunks, then JSON.parse the fully decoded JSON string.
+    const decodedString = atobChunked(str);    
+    const jsonString = decodeURIComponentChunked(decodedString);
+    return parseJSONChunked(jsonString);
+}
+
+const atobChunked = (s: string): string => {
+    const CHUNK = 32768; // multiple of 4 keeps base64 decoding char-aligned
+    let out = '';
+    for (let i = 0; i < s.length; i += CHUNK) {
+        out += atob(s.slice(i, i + CHUNK));
+    }
+    return out;
+}
+
+const decodeURIComponentChunked = (s: string): string => {
+    const CHUNK = 32768;
+    let out = '';
+    let i = 0;
+    while (i < s.length) {
+        let end = i + CHUNK;
+        if (end > s.length) end = s.length;
+        // Don't cut through a %XX escape sequence produced by encodeURIComponent
+        while (end < s.length && (s[end] === '%' || s[end - 1] === '%' || s[end - 2] === '%')) {
+            end -= 1;
+        }
+        out += decodeURIComponent(s.slice(i, end));
+        i = end;
+    }
+    return out;
+}
+
+const parseJSONChunked = (s: string): any => {
+    const str = (s || '').trim();
+    if (str === '') return '';
+    const first = str[0];
+    // Primitives (string/number/bool/null) are parsed directly.
+    if (first !== '[' && first !== '{') {
+        return JSON.parse(str);
+    }
+
+    const isArray = first === '[';
+
+    // Locate the matching close bracket of the top-level container.
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    let endInner = -1;
+    for (let i = 0; i < str.length; i++) {
+        const c = str[i];
+        if (inStr) {
+            if (esc) esc = false;
+            else if (c === '\\') esc = true;
+            else if (c === '"') inStr = false;
+            continue;
+        }
+        if (c === '"') { inStr = true; continue; }
+        if (c === '{' || c === '[') depth++;
+        else if (c === '}' || c === ']') {
+            depth--;
+            if (depth === 0) { endInner = i; break; }
+        }
+    }
+
+    if (endInner === -1) {
+        return JSON.parse(str); // fallback
+    }
+
+    const inner = str.slice(1, endInner);
+    if (inner.trim() === '') {
+        return isArray ? [] : {};
+    }
+
+    // Split the inner content into top-level elements (commas at depth 0).
+    const elements: string[] = [];
+    let d2 = 0, inS2 = false, e2 = false, start = 0;
+    for (let i = 0; i < inner.length; i++) {
+        const c = inner[i];
+        if (inS2) {
+            if (e2) e2 = false;
+            else if (c === '\\') e2 = true;
+            else if (c === '"') inS2 = false;
+            continue;
+        }
+        if (c === '"') { inS2 = true; continue; }
+        if (c === '{' || c === '[') d2++;
+        else if (c === '}' || c === ']') d2--;
+        else if (c === ',' && d2 === 0) {
+            elements.push(inner.slice(start, i));
+            start = i + 1;
+        }
+    }
+    elements.push(inner.slice(start));
+
+    if (isArray) {
+        return elements
+            .map(e => {
+                const t = e.trim();
+                return t === '' ? undefined : parseJSONChunked(t);
+            })
+            .filter(v => v !== undefined);
+    }
+
+    // Object: split each "key":value pair, then parse the value (recursively).
+    const obj: any = {};
+    for (const el of elements) {
+        const t = el.trim();
+        if (t === '') continue;
+        let d3 = 0, inS3 = false, e3 = false, colon = -1;
+        for (let i = 0; i < t.length; i++) {
+            const c = t[i];
+            if (inS3) {
+                if (e3) e3 = false;
+                else if (c === '\\') e3 = true;
+                else if (c === '"') inS3 = false;
+                continue;
+            }
+            if (c === '"') { inS3 = true; continue; }
+            if (c === '{' || c === '[') d3++;
+            else if (c === '}' || c === ']') d3--;
+            else if (c === ':' && d3 === 0) { colon = i; break; }
+        }
+        if (colon === -1) continue;
+        const key = JSON.parse(t.slice(0, colon).trim());
+        const val = t.slice(colon + 1).trim();
+        obj[key] = parseJSONChunked(val);
+    }
+    return obj;
 }
 
 const saveContent = async (clear: boolean = true)=> {
@@ -970,7 +1101,7 @@ const loadQuestion = async ()=> {
             const file = await fileHandle.getFile();
             const contents = await file.text();
             const questions = JSON.parse(contents);
-            const groupedQuestions = Object.groupBy(questions, (item: any) => item['standard']);            
+            const groupedQuestions = groupBy(questions, 'standard');
 
             for(let standard in groupedQuestions) {                
                 const dm = (contentData.value as any).domains[selectedCertification.value.id].find((v: any) => {                    
@@ -1037,7 +1168,7 @@ const loadFromDB = async (data: any)=> {
             // console.log(questions);
             contentData.value.certifications.forEach((v: any)=> {
                 // console.log(v);
-                const groupedQuestions = Object.groupBy(questions[v.id], (item: any) => item['standard']);                        
+                const groupedQuestions = groupBy(questions[v.id], 'standard');
                 for(let standard in groupedQuestions) {                
                     const dm = (contentData.value as any).domains[v.id].find((v: any) => {                    
                         return v['part'] == standard
@@ -1545,6 +1676,65 @@ const checkCalculation = async ()=> {
     });
 
     await actionSheet.present();
+}
+
+const validateQuestionsQuality = async (domain: any) => {
+    if(selectedCertification.value.id == '' || !domain) return;
+    const qs = (contentData.value.question as any)[selectedCertification.value.id] && (contentData.value.question as any)[selectedCertification.value.id][domain['id']];
+    if(!qs || qs.length === 0) {
+        const toast = await toastController.create({
+            message: 'No questions to validate for this part.',
+            duration: 2500,
+            position: 'bottom',
+            color: 'danger'
+        });
+        await toast.present();
+        return;
+    }
+
+    const loading = await loadingController.create({ message: 'Validating quality...' });
+    await loading.present();
+
+    try {
+        const domainName = domain['part'] || domain['name'] || domain['id'];
+        const prompt = `You are a strict exam question quality reviewer. Below is a JSON array of questions for the certification domain "${domainName}". Review them for: factual correctness, clarity, relevance to the domain, plausible distractors, and duplicate/near-duplicate questions. Return a concise report (plain text, under 400 words) with: (1) overall quality verdict (Good / Needs Improvement), (2) critical issues, and (3) the indices of any low-quality questions. Questions:\n\n${JSON.stringify(qs)}`;
+
+        const key = localStorage.getItem("KILO_KEY") || '';
+        const response = await CapacitorHttp.post({
+            url: AI_ENDPOINTS[0],
+            headers: {
+                "Content-Type": "application/json",
+            },
+            data: {
+                prompt: JSON.stringify(prompt),
+                model: "google/gemini-3.1-flash-lite",
+                key
+            }
+        });
+
+        if (response.status < 200 || response.status >= 300) {
+            const error = response.data;
+            throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
+        }
+
+        const report = response.data && response.data['content'] ? response.data['content'] : '';
+        await loading.dismiss();
+        const alert = await alertController.create({
+            header: `Quality Check: Part ${domain['id']}`,
+            message: report || 'No response.',
+            buttons: ['Ok']
+        });
+        await alert.present();
+    } catch (error: any) {
+        console.log(error);
+        await loading.dismiss();
+        const alert = await alertController.create({
+            header: 'Error: AI',
+            message: error,
+            buttons: ['Ok']
+        });
+        await alert.present();
+    }
 }
 
 </script>

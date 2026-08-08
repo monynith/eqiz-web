@@ -435,11 +435,25 @@
     cursor: pointer;
 }
 
-#ai-icon {
-    font-size: 1rem;
-    color: palevioletred;
+.ai-actions {
     position: absolute;
     top: 10px;
     right: 15px;
-    opacity: 0.8;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#ai-icon {
+    font-size: 1rem;
+    color: palevioletred;
+    opacity: 0.85;
+    cursor: pointer;
+}
+
+#validate-icon {
+    font-size: 1rem;
+    color: palevioletred;
+    opacity: 0.85;
+    cursor: pointer;
 }
