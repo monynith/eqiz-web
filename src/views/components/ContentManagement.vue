@@ -160,6 +160,39 @@
                     </div>
                 </div>                    
             </div>             
+            <br/>
+            <br/>
+            <p class="label" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" v-if="selectedCertification['id'] != ''">Mock Up or Previous Exam Question</p>
+            <ion-toggle mode="md" id="mockup-toggle" @click="toggleMockupCalculation" :checked="mockupCalculation" v-if="selectedCertification['id'] != ''">CALCULATION?</ion-toggle>
+            <ion-icon :icon="sparklesOutline" class="ai-icon" :style="{ opacity: selectedCertification['id'] != '' ? 0.85 : 0.5, cursor: selectedCertification['id'] != '' ? 'pointer' : 'default' }" @click="checkMockupCalculation" v-if="selectedCertification['id'] != ''" title="Check calculation questions with AI"></ion-icon><br />
+            <div id="mockup-wrapper" v-if="selectedCertification['id'] != ''">
+                <div class="question-title">
+                    <p>{{ `Mock Up / Previous Exam (${selectedCertification['name']})` }}
+                        <ion-icon :icon="copyOutline" @click="copyPrompt('mockup')" id="copy"></ion-icon>
+                        <ion-icon :icon="scanOutline" class="open-icon" @click="openText((contentData.mockupQuestion as any)[selectedCertification.id] ? (contentData.mockupQuestion as any)[selectedCertification.id] : '', 'json', true, { type: 'mockup' })"></ion-icon>
+                    </p>
+
+                    <div id="content-wrapper" class="p-b-0">
+                        <p class="inner-title m-b-0">QUESTION BATCHES</p>                
+                        <div class="add-wrapper m-b-10">
+                            <p id="question-count">Current Question: <b>{{ (contentData.mockupQuestion as any)[selectedCertification.id] ? (contentData.mockupQuestion as any)[selectedCertification.id].length : 0 }}</b> / 200</p>
+                        </div>
+                        <div id="completed" v-if="isMockupCompleted()">
+                            <ion-icon :icon="checkmarkCircleSharp"></ion-icon>
+                            <span>Completed</span>
+                        </div>                   
+                        <div class="ai-actions">
+                            <ion-icon :icon="checkmarkDoneSharp" id="validate-icon" @click="validateMockupQuality()" title="Validate question quality (kilo/free)"></ion-icon>
+                            <ion-icon :icon="sparkles" id="ai-icon" @click="generateMockupUntil()" title="Generate with AI until 200"></ion-icon>
+                        </div>
+
+                    </div> 
+
+                    <div class="add-item" :style="{ opacity: selectedCertification['id'] != '' ? 1 : 0.5 }" @click="addMockupQuestion()">
+                        <ion-icon :icon="add"></ion-icon><span>Add Question Batch</span>
+                    </div>
+                </div>                    
+            </div>             
         </div>
     </div>
     <br />
@@ -174,6 +207,7 @@ import examtip from '@/assets/prompts/examtip';
 import glossary from '@/assets/prompts/glossary';
 import note from '@/assets/prompts/note';
 import question from '@/assets/prompts/question';
+import mockup from '@/assets/prompts/mockup';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController, modalController } from '@ionic/vue';
 import TextModal from './TextModal.vue';
 import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, menuOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
@@ -201,6 +235,9 @@ const contentData = ref({
     question: {
         
     },
+    mockupQuestion: {
+
+    },
     remark: ''
 })
 
@@ -210,6 +247,7 @@ const selectedCertification = ref({
     name: ''
 });
 const calculation = ref(false);
+const mockupCalculation = ref(false);
 
 const setAppId = async ()=> {
     const alertInputs: any = [
@@ -327,6 +365,58 @@ const addQuestion = async (domain: any)=> {
                     if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
                     const filterQuestions = validateQuestions(questions, domain);
                     (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = filterQuestions;
+                    processed = true;
+                    alert.dismiss();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        };
+        inputEl.addEventListener('paste', (event: ClipboardEvent) => {
+            handleQuestion(event.clipboardData?.getData('text') || '');
+        });
+        inputEl.addEventListener('input', (event: Event) => {
+            handleQuestion((event.target as HTMLInputElement).value);
+        });
+    }
+
+    await alert.present();
+}
+
+const addMockupQuestion = async ()=> {
+   if (selectedCertification.value.id == '') return;
+   const alertInputs: any = [
+        {
+            placeholder: 'Paste JSON Data',
+            name: 'json',
+            type: 'textarea',
+            attributes: {
+                id: 'alert-paste-field'
+            }
+        }
+    ];
+    const alert = await alertController.create({
+        header: 'Add Mock Up / Previous Exam Question Batch',
+        subHeader: selectedCertification.value.name,
+        buttons: [{
+            text: 'Cancel'
+        }],
+        inputs: alertInputs,
+        mode: 'md'
+    });
+
+    const inputEl = document.getElementById('alert-paste-field') as HTMLInputElement;
+    if (inputEl) {
+        let processed = false;
+        const handleQuestion = (data: string) => {
+            if (processed || !data) return;
+            try {
+                const result = JSON.parse(data);
+                let questions = result['data'] || result;
+                if (questions.length > 0) {
+                    if(!(contentData.value.mockupQuestion as any)[selectedCertification.value.id]) (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = [];
+                    const filterQuestions = validateMockupQuestions(questions);
+                    (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = filterQuestions;
                     processed = true;
                     alert.dismiss();
                 }
@@ -526,6 +616,14 @@ const buildPrompt = (type: string, domain?: any) => {
             str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
         }
     }
+    if(type == 'mockup') {
+        str = mockup.replaceAll('$RP{app-name}', contentData.value.appName).replaceAll('$RP{cert-name}', selectedCertification.value['name']).replaceAll('$RP{domain-name}', selectedCertification.value['name']);
+        if(mockupCalculation.value == false) {
+            str = str.replaceAll('$RP{comment-start}', '<!--').replaceAll('$RP{comment-end}', '-->');
+        } else {
+            str = str.replaceAll('$RP{comment-start}', '').replaceAll('$RP{comment-end}', '');
+        }
+    }
     return str;
 }
 
@@ -590,6 +688,10 @@ const toggleNotifications = () => {
   calculation.value = !calculation.value;
 }
 
+const toggleMockupCalculation = () => {
+  mockupCalculation.value = !mockupCalculation.value;
+}
+
 const isQuestionCompleted = (domain: any)=> {
     const questions = (contentData.value.question as any)[selectedCertification.value['id']] && (contentData.value.question as any)[selectedCertification.value['id']][domain['id']] ? (contentData.value.question as any)[selectedCertification.value['id']][domain['id']] : [];
     if(questions.length >= 390) {
@@ -642,6 +744,39 @@ const validateQuestions = (questions: any, domain: any)=> {
         }     
     });    
     return results.slice(0, 390);
+}
+
+const isMockupCompleted = ()=> {
+    const questions = (contentData.value.mockupQuestion as any)[selectedCertification.value['id']] ? (contentData.value.mockupQuestion as any)[selectedCertification.value['id']] : [];
+    if(questions.length >= 200) {
+        return true;
+    }
+    return false;
+}
+
+const validateMockupQuestions = (questions: any)=> {
+    const existing = (contentData.value.mockupQuestion as any)[selectedCertification.value.id] ? (contentData.value.mockupQuestion as any)[selectedCertification.value.id] : [];
+    const allQuestions = existing.concat(questions);
+    shuffleArray(allQuestions);
+    const uniqueQuestions = groupBy(allQuestions, 'question');
+    const results: any = [];
+    let i = 1;
+    Object.keys(uniqueQuestions).forEach((key: any) => {
+        const v = uniqueQuestions[key][0];
+        if(
+            v['question'] &&
+            v['question'].length >= 40 &&
+            v['question'].indexOf('YANG') <= -1 &&
+            v['explanation'] && v['explanation'].length >= 50 &&
+            v['question'].indexOf('completion of question') <= -1 &&
+            v['question'].indexOf('Which of the following summarize the') <= -1 &&
+            v['standard']
+        ) {
+            results.push({ ...v, id: `${selectedCertification.value.id}_mockup_` + i, quizId: `${selectedCertification.value.id}_mockup`, type: 'mockup' });
+            i = i + 1;
+        }
+    });
+    return results.slice(0, 200);
 }
 
 const normalizeDomains = (domains: any) => {
@@ -831,6 +966,8 @@ const saveContent = async (clear: boolean = true)=> {
             const qs = (contentData.value.question as any)[v.id] && (contentData.value.question as any)[v.id][domain['id']];
             if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
         });
+        const mockupQs = (contentData.value.mockupQuestion as any)[v.id];
+        if(mockupQs && mockupQs.length > 0) question = question.concat(mockupQs['data'] || mockupQs);
         (questions as any)[v.id] = question;
     });    
 
@@ -942,6 +1079,8 @@ const downloadQuestions = async ()=> {
             const qs = (contentData.value.question as any)[v.id] && (contentData.value.question as any)[v.id][domain['id']];
             if(qs && qs.length > 0) question = question.concat(qs['data'] || qs);
         });
+        const mockupQs = (contentData.value.mockupQuestion as any)[v.id];
+        if(mockupQs && mockupQs.length > 0) question = question.concat(mockupQs['data'] || mockupQs);
         folder?.file(`${v.id}.json`, JSON.stringify({
             data: question.map((v: any)=> {
                 return {
@@ -961,6 +1100,44 @@ const downloadQuestions = async ()=> {
         const link = document.createElement("a");
         link.href = url;
         link.download = `questions-${contentData.value.appId}-${new Date().getTime()}.zip`;
+        document.body.appendChild(link);
+        link.click();
+
+        // Cleanup
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error("Error generating zip:", error);
+    }
+}
+
+const downloadMockupQuestions = async ()=> {
+    const zip = new JSZip();
+    contentData.value.certifications.forEach((v: any) => {
+        const folder = zip.folder(v.id); 
+        let question: any = [];
+        const mockupQs = (contentData.value.mockupQuestion as any)[v.id];
+        if(mockupQs && mockupQs.length > 0) question = question.concat(mockupQs['data'] || mockupQs);
+        folder?.file(`${v.id}-mockup.json`, JSON.stringify({
+            data: question.map((v: any)=> {
+                return {
+                    ...v,
+                    question: v['question'].substring(0, v['question'].lastIndexOf('?') + 1).trim()
+                }
+            }),
+            version: 1
+        }, null, 6));
+    })
+    try {
+        // Generate the zip file
+        const content = await zip.generateAsync({ type: "blob" });
+
+        // Create a temporary download link
+        const url = URL.createObjectURL(content);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `mockup-questions-${contentData.value.appId}-${new Date().getTime()}.zip`;
         document.body.appendChild(link);
         link.click();
 
@@ -1030,11 +1207,14 @@ const createAgain = ()=> {
                 
         },
         content: {
-            
+
         },
         question: {
-            
-        }, 
+
+        },
+        mockupQuestion: {
+
+        },
         remark: ''
     };
     selectedCertification.value = {
@@ -1067,6 +1247,9 @@ const loadMeta = async ()=> {
                 question: {
                     
                 },
+                mockupQuestion: {
+
+                },
                 remark: meta['remark'] || ''
             }
             selectedCertification.value = {
@@ -1087,6 +1270,34 @@ const loadMeta = async ()=> {
     }    
 }
 
+const assignLoadedQuestions = (certId: string, questions: any)=> {
+    if(!questions || !Array.isArray(questions)) return;
+    if(!(contentData.value as any).domains[certId]) return;
+    if(!(contentData.value as any).question[certId]) (contentData.value as any).question[certId] = {};
+    if(!(contentData.value as any).mockupQuestion[certId]) (contentData.value as any).mockupQuestion[certId] = [];
+
+    const regular: any[] = [];
+    const mockup: any[] = [];
+    questions.forEach((q: any) => {
+        if(q && (q['type'] === 'mockup' || (q['quizId'] && q['quizId'].indexOf('_mockup') > -1))) {
+            mockup.push(q);
+        } else {
+            regular.push(q);
+        }
+    });
+
+    const groupedQuestions = groupBy(regular, 'standard');
+    for(const standard in groupedQuestions) {
+        const dm = (contentData.value as any).domains[certId].find((v: any) => {
+            return v['part'] == standard
+        });
+        if(dm) {
+            (contentData.value as any).question[certId][dm.id] = groupedQuestions[standard];
+        }
+    }
+    (contentData.value as any).mockupQuestion[certId] = mockup;
+}
+
 const loadQuestion = async ()=> {
     try {
         if((window as any)['showOpenFilePicker']){
@@ -1101,17 +1312,7 @@ const loadQuestion = async ()=> {
             const file = await fileHandle.getFile();
             const contents = await file.text();
             const questions = JSON.parse(contents);
-            const groupedQuestions = groupBy(questions, 'standard');
-
-            for(let standard in groupedQuestions) {                
-                const dm = (contentData.value as any).domains[selectedCertification.value.id].find((v: any) => {                    
-                    return v['part'] == standard
-                });
-                if(dm) {
-                    if(!(contentData.value as any).question[selectedCertification.value.id]) (contentData.value as any).question[selectedCertification.value.id] = {};
-                    (contentData.value as any).question[selectedCertification.value.id][dm.id] = groupedQuestions[standard];
-                }                
-            } 
+            assignLoadedQuestions(selectedCertification.value.id, questions['data'] || questions);
 
         }
     } catch(e) {
@@ -1152,7 +1353,10 @@ const loadFromDB = async (data: any)=> {
                 domains: deShortenString(meta['domains']),
                 content: deShortenString(meta['content']) || {},
                 question: {
-                    
+
+                },
+                mockupQuestion: {
+
                 },
                 remark: deShortenString(meta['remark'])
             }            
@@ -1167,17 +1371,9 @@ const loadFromDB = async (data: any)=> {
             const questions = deShortenString(meta['json']);
             // console.log(questions);
             contentData.value.certifications.forEach((v: any)=> {
-                // console.log(v);
-                const groupedQuestions = groupBy(questions[v.id], 'standard');
-                for(let standard in groupedQuestions) {                
-                    const dm = (contentData.value as any).domains[v.id].find((v: any) => {                    
-                        return v['part'] == standard
-                    });
-                    if(dm) {
-                        if(!(contentData.value as any).question[v.id]) (contentData.value as any).question[v.id] = {};
-                        (contentData.value as any).question[v.id][dm.id] = groupedQuestions[standard];
-                    }                
-                } 
+                if(!(contentData.value as any).question[v.id]) (contentData.value as any).question[v.id] = {};
+                if(!(contentData.value as any).mockupQuestion[v.id]) (contentData.value as any).mockupQuestion[v.id] = [];
+                assignLoadedQuestions(v.id, questions[v.id]);
             });
 
         }
@@ -1256,6 +1452,9 @@ const moreOption = async ()=> {
         }, {
             text: "DOWNLOAD QUESTIONS",
             handler: downloadQuestions
+        }, {
+            text: "DOWNLOAD MOCKUP QUESTIONS",
+            handler: downloadMockupQuestions
         }],
         mode: 'md'
     });
@@ -1361,6 +1560,10 @@ const applyTextSave = (content: any, save: any)=> {
             if(!(contentData.value.question as any)[certId]) (contentData.value.question as any)[certId] = {};
             (contentData.value.question as any)[certId][save.domainId] = parsed;
         }
+    } else if (save.type === 'mockup') {
+        if (parsed) {
+            (contentData.value.mockupQuestion as any)[certId] = parsed;
+        }
     } else if (save.type === 'note') {
         if(!(contentData.value.content as any)[certId]) (contentData.value.content as any)[certId] = {};
         if(!(contentData.value.content as any)[certId]['note']) (contentData.value.content as any)[certId]['note'] = {};
@@ -1413,6 +1616,14 @@ const processAIResult = (type: string, domain: any, content: string) => {
                 if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
                 if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
                 (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = validateQuestions(questions, domain);
+            }
+        } else if(type == 'mockup') {
+            const jsonString = jsonrepair(json);
+            const parsed = JSON.parse(jsonString);
+            const questions = parsed['data'] || parsed;
+            if (questions.length > 0) {
+                if(!(contentData.value.mockupQuestion as any)[selectedCertification.value.id]) (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = [];
+                (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = validateMockupQuestions(questions);
             }
         } else if(type == 'domain') {
             const jsonString = jsonrepair(json); 
@@ -1682,6 +1893,81 @@ const generateQuestionsUntil = async (domain: any)=> {
     await actionSheet.present();
 }
 
+const getMockupCount = ()=> {
+    const q = (contentData.value.mockupQuestion as any)[selectedCertification.value.id];
+    return (q && q.length) ? q.length : 0;
+}
+
+const generateMockupUntil = async ()=> {
+    if(selectedCertification.value.id == '') return;
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        let cancelled = false;
+                        let dismissed = false;
+                        const dismiss = async ()=> {
+                            if(dismissed) return;
+                            dismissed = true;
+                            try { await loading.dismiss(); } catch (e) {}
+                        };
+
+                        const loading = await loadingController.create({
+                            message: `Generating... (${getMockupCount()}/200)`,
+                            buttons: [{
+                                text: 'Cancel',
+                                handler: ()=> {
+                                    cancelled = true;
+                                    return false;
+                                }
+                            }]
+                        } as any);
+                        await loading.present();
+
+                        try {
+                            let prev = getMockupCount();
+                            let iterations = 0;
+                            while(!cancelled && prev < 200 && iterations < 60) {
+                                iterations++;
+                                await callAI('mockup', v);
+                                const current = getMockupCount();
+                                loading.message = `Generating... (${current}/200)`;
+                                if(current <= prev) break;
+                                prev = current;
+                            }
+                            await dismiss();
+                            const toast = await toastController.create({
+                                message: cancelled ? 'Generation cancelled.' : (prev >= 200 ? 'Reached 200 questions.' : 'No more new questions from AI.'),
+                                duration: 2500,
+                                position: 'bottom',
+                                color: cancelled ? 'warning' : 'secondary'
+                            });
+                            await toast.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await dismiss();
+                            const alert = await alertController.create({
+                                header: 'Error: AI',
+                                message: error,
+                                buttons: ['Ok']
+                            });
+
+                            await alert.present();
+                        }
+                    }, 0);
+                }
+            }
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
 const checkCalculation = async ()=> {
     if(selectedCertification.value.id == '') return;
 
@@ -1717,6 +2003,54 @@ const checkCalculation = async ()=> {
                                 header: 'Error: AI',                        
                                 message: error,
                                 buttons: ['Ok'],
+                            });
+                            await alert.present();
+                        }
+                    }, 0); 
+                }
+            }            
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const checkMockupCalculation = async ()=> {
+    if(selectedCertification.value.id == '') return;
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        const loading = await loadingController.create({
+                            message: 'Checking...'
+                        });
+                        loading.present();
+
+                        try {
+                            const answer = await callAI('calc', v);
+                            const match = (answer || '').match(/HAS_CALCULATION:\s*(yes|no)/i);
+                            if(match) {
+                                mockupCalculation.value = /^yes/i.test(match[1]);
+                            }
+                            await loading.dismiss();
+                            const alert = await alertController.create({
+                                header: 'Mock Up Calculation Check',
+                                message: answer || 'No response.',
+                                buttons: ['Ok']
+                            });
+                            await alert.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await loading.dismiss();
+                            const alert = await alertController.create({
+                                header: 'Error: AI',                        
+                                message: error,
+                                buttons: ['Ok']
                             });
                             await alert.present();
                         }
@@ -1773,6 +2107,65 @@ const validateQuestionsQuality = async (domain: any) => {
         await loading.dismiss();
         const alert = await alertController.create({
             header: `Quality Check: Part ${domain['id']}`,
+            message: report || 'No response.',
+            buttons: ['Ok']
+        });
+        await alert.present();
+    } catch (error: any) {
+        console.log(error);
+        await loading.dismiss();
+        const alert = await alertController.create({
+            header: 'Error: AI',
+            message: error,
+            buttons: ['Ok']
+        });
+        await alert.present();
+    }
+}
+
+const validateMockupQuality = async () => {
+    if(selectedCertification.value.id == '') return;
+    const qs = (contentData.value.mockupQuestion as any)[selectedCertification.value.id];
+    if(!qs || qs.length === 0) {
+        const toast = await toastController.create({
+            message: 'No questions to validate.',
+            duration: 2500,
+            position: 'bottom',
+            color: 'danger'
+        });
+        await toast.present();
+        return;
+    }
+
+    const loading = await loadingController.create({ message: 'Validating quality...' });
+    await loading.present();
+
+    try {
+        const certName = selectedCertification.value.name || selectedCertification.value.id;
+        const prompt = `You are a strict exam question quality reviewer. Below is a JSON array of PREVIOUS / MOCK EXAM questions for the certification "${certName}". Review them for: factual correctness, clarity, relevance to the certification, plausible distractors, and duplicate/near-duplicate questions. Confirm each reads like a genuine past/practice exam item. Return a concise report (plain text, under 400 words) with: (1) overall quality verdict (Good / Needs Improvement), (2) critical issues, and (3) the indices of any low-quality or non-exam-realistic questions. Questions:\n\n${JSON.stringify(qs)}`;
+
+        const key = localStorage.getItem("KILO_KEY") || '';
+        const response = await CapacitorHttp.post({
+            url: AI_ENDPOINTS[0],
+            headers: {
+                "Content-Type": "application/json",
+            },
+            data: {
+                prompt: JSON.stringify(prompt),
+                model: "google/gemini-3.1-flash-lite",
+                key
+            }
+        });
+
+        if (response.status < 200 || response.status >= 300) {
+            const error = response.data;
+            throw new Error(`${error && error['error'] && error['error']['message'] || response.status }`);
+        }
+
+        const report = response.data && response.data['content'] ? response.data['content'] : '';
+        await loading.dismiss();
+        const alert = await alertController.create({
+            header: `Quality Check: Mock Up / Previous Exam`,
             message: report || 'No response.',
             buttons: ['Ok']
         });

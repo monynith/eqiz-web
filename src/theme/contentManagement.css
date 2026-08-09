@@ -360,11 +360,18 @@
     font-size: 0.8rem;    
 }
 
+#mockup-toggle {
+    margin-top: 15px;
+    color: #585858;
+    font-size: 0.8rem;    
+}
+
 .add-wrapper #question-count {
     font-weight: normal;
 }
 
-#question-wrapper #completed {
+#question-wrapper #completed,
+#mockup-wrapper #completed {
     display: flex;
     justify-content: flex-end;
     align-items: center;    
@@ -374,12 +381,14 @@
     color: seagreen;
 }
 
-#question-wrapper #completed span {    
+#question-wrapper #completed span,
+#mockup-wrapper #completed span {    
     text-transform: uppercase;
     margin-left: 3px;
 }
 
-#question-wrapper #completed ion-icon {
+#question-wrapper #completed ion-icon,
+#mockup-wrapper #completed ion-icon {
     font-size: 1rem;
     color: seagreen;
 }
