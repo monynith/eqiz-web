@@ -92,7 +92,7 @@ const buildChartOptions = () => {
                 },
                 ticks: {
                     font: {
-                        family: '"Manrope"'
+                        family: '"Hanken Grotesk"'
                     },
                     color: tickColor,
                 }
@@ -103,7 +103,7 @@ const buildChartOptions = () => {
                 },
                 ticks: {
                     font: {
-                        family: '"Manrope"' // Target the y-axis labels
+                        family: '"Hanken Grotesk"' // Target the y-axis labels
                     },
                     color: tickColor,
                 }
