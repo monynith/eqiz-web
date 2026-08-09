@@ -249,68 +249,33 @@ const selectedCertification = ref({
 const calculation = ref(false);
 const mockupCalculation = ref(false);
 
-// Local draft persistence (IndexedDB).
+// Local draft persistence.
 // Autosaves the whole working state so it survives app reload/closure.
 // The draft is cleared ONLY on "Create Again" or a successful "Save" (not "Save & Keep").
-// IndexedDB is used instead of localStorage because the question sets can be very large.
-const DB_NAME = 'eqiz-content-draft';
-const DRAFT_STORE = 'drafts';
+// We use localforage (instead of raw IndexedDB) because iOS WKWebView's IndexedDB
+// is unreliable: it silently fails in private mode and across reloads. localforage
+// automatically falls back through IndexedDB -> WebSQL -> localStorage, and WebSQL
+// is the most dependable backend on iOS.
+import localforage from 'localforage';
+
 const DRAFT_KEY = 'current';
 
-const openDraftDB = (): Promise<IDBDatabase> => {
-    return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 1);
-        req.onupgradeneeded = () => {
-            const db = req.result;
-            if (!db.objectStoreNames.contains(DRAFT_STORE)) {
-                db.createObjectStore(DRAFT_STORE);
-            }
-        };
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
-    });
+const draftStore = localforage.createInstance({
+    name: 'eqiz-content-draft',
+    storeName: 'drafts',
+    description: 'Local autosave draft for content management'
+});
+
+const putDraft = (value: any): Promise<void> => {
+    return draftStore.setItem(DRAFT_KEY, value).then(() => undefined);
 };
 
-const putDraft = async (value: any): Promise<void> => {
-    const db = await openDraftDB();
-    try {
-        await new Promise<void>((resolve, reject) => {
-            const tx = db.transaction(DRAFT_STORE, 'readwrite');
-            tx.objectStore(DRAFT_STORE).put(value, DRAFT_KEY);
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error);
-        });
-    } finally {
-        db.close();
-    }
+const getDraft = (): Promise<any | null> => {
+    return draftStore.getItem(DRAFT_KEY).then((v: any) => v ?? null);
 };
 
-const getDraft = async (): Promise<any | null> => {
-    const db = await openDraftDB();
-    try {
-        return await new Promise<any | null>((resolve, reject) => {
-            const tx = db.transaction(DRAFT_STORE, 'readonly');
-            const req = tx.objectStore(DRAFT_STORE).get(DRAFT_KEY);
-            req.onsuccess = () => resolve(req.result ?? null);
-            req.onerror = () => reject(req.error);
-        });
-    } finally {
-        db.close();
-    }
-};
-
-const deleteDraft = async (): Promise<void> => {
-    const db = await openDraftDB();
-    try {
-        await new Promise<void>((resolve, reject) => {
-            const tx = db.transaction(DRAFT_STORE, 'readwrite');
-            tx.objectStore(DRAFT_STORE).delete(DRAFT_KEY);
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error);
-        });
-    } finally {
-        db.close();
-    }
+const deleteDraft = (): Promise<void> => {
+    return draftStore.removeItem(DRAFT_KEY).then(() => undefined);
 };
 
 const persistDraft = async () => {
