@@ -2,6 +2,13 @@
    Ionic components are themed by @ionic/vue/css/palettes/dark.class.css
    (activated by the `.ion-palette-dark` class on <html>). */
 
+.ion-palette-dark,
+.ion-palette-dark body,
+.ion-palette-dark ion-app,
+.ion-palette-dark ion-content {
+  background-color: #121212;
+}
+
 .ion-palette-dark {
   --eq-surface: #1e1e1e;
   --eq-surface-2: #2a2a2a;

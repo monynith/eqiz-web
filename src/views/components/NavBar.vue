@@ -1,6 +1,6 @@
 <template>
   <div class="nav" :class="{ 'collapsed': collapsed }">
-    <div id="logo">
+    <div id="logo" @click="navi('home')" style="cursor: pointer;">
         <img src="../../assets/logo.png" />
         <span>Eqiz Studio</span>
     </div>    

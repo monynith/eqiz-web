@@ -1,6 +1,6 @@
 <template>
     <div class="nav-phone">
-        <div id="logo">
+        <div id="logo" @click="movePage('home')" style="cursor: pointer;">
             <img src="../../assets/logo.png" />
             <span>Eqiz Studio</span>
         </div>

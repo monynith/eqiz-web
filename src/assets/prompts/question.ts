@@ -2,10 +2,20 @@ export default `
 ### **Logic & Generation Protocol (Absolute Distribution Guard)**
 **N = 1**  
 **Standard Field String:** "$RP{domain-name}"
-**Core Objective:** Generate a batch of 100 high-quality questions for the **$RP{app-name}** on **$RP{cert-name}** exam based on a user-provided ID range (**N to N+99**). Output must be a single, continuous, raw JSON code block containing 100 completely fresh and fully unique conceptual, regulatory, or operational test entries with zero structural or verbatim duplication.
+**Core Objective:** Generate a batch of 100 high-quality, professionally authored, examination-grade questions for the **$RP{app-name}** on **$RP{cert-name}** exam based on a user-provided ID range (**N to N+99**). Output must be a single, continuous, raw JSON code block containing 100 completely fresh and fully unique conceptual, regulatory, or operational test entries with zero structural or verbatim duplication. Every item MUST meet the professional quality and editorial standards defined in Section 0 below.
 To maintain strict technical rigor, **do not write narrative scenario questions.** Strictly prohibit hypothetical characters, specific personas, or descriptive operational scenarios (e.g., avoid preambles like *"An organization notices..."*, *"A contractor evaluates..."*, *"During a strategic review, an auditor looks at..."*). Every question must be phrased as a direct, standalone conceptual or definition-based question.
 
 
+
+#### **0. Professional Quality & Editorial Standards (Mandatory)**
+
+Every question MUST meet the standard of a professionally authored, examination-grade item suitable for an accredited certification body. This is not optional stylistic guidance — it is a hard acceptance criterion evaluated before output:
+
+- **Authoritative Accuracy:** Questions must reflect current, widely accepted industry knowledge and the official body of knowledge / syllabus terminology for the **$RP{cert-name}** exam. Never introduce speculative, outdated, deprecated, or region-specific assumptions unless the domain explicitly requires them.
+- **Precision & Clarity:** Use unambiguous, grammatically correct, and carefully proofread language. Eliminate colloquialisms, filler words, vague phrasing, and double negatives. Each question must test exactly one clearly defined concept or competency.
+- **Professional Distractors:** Every answer choice must be plausible, mutually exclusive, grammatically parallel, and written at the same level of detail and professionalism. Distractors must represent common misconceptions or near-correct statements — never obvious nonsense, and never duplicates of the correct answer merely reworded.
+- **Substantive Explanations:** The \`explanation\` must be a concise, professional rationale that states *why* the correct answer is right and, where useful, *why* each distractor is wrong, grounded in the underlying principle, standard, or regulatory rule.
+- **Consistent Editorial Tone:** Maintain a formal, neutral, examination tone throughout the entire batch. The 100 items must read as a cohesive, coherent examination set — not a collection of loosely related fragments.
 
 #### **1. Formatting & Structure**
 
@@ -58,11 +68,17 @@ To prevent pattern fatigue from dropping the final block requirements, you must 
     *Correct Pattern:* "What is the primary function of...?" or "Which regulatory standard defines...?"
     *Incorrect Pattern:* "An analyst is reviewing corporate statements and wants to determine..."
 
+- **Professional & Authoritative Voice:** Write every field with the precision and formality of a certified examination. Use correct domain terminology, avoid slang or informal phrasing, and ensure there are no grammatical, spelling, or punctuation errors in any field.
+
 - **Anti-Copy Safeguard:** Absolutely zero copy-pasting or minimal text alterations from previous sets. Every problem, option array, and context must evaluate distinct factual configurations, structural laws, and industry frameworks.
+
 - **Clean Questions:** Strictly prohibit any variable text fragments, repetitive template suffixes, or serial identifiers from all fields. Every question must be rendered explicitly with independent vocabulary and diverse distractors.
+
 - **Hint Removal:** Strictly remove words indicating the number of correct choices (e.g., "two," "three," "four," "select," "multiple") from the question text.
+
 - **Unique Options:** Eliminate "All of the above," "None of the above," or numbered combinations (e.g., "1 and 2 only", "1,2", "3,4"). This applies to every \`answer-x\` field in every block without exception — see Section 2A for the required alternative structure in multi-select blocks.
-- **Explanations:** Provide high-context detail explaining the business logic or regulatory rule. Do not use option labels (e.g., avoid "Option 1 is correct..."). **Do not use LaTeX or MathJax in explanations.**
+
+- **Explanations (High-Context & Professional):** Provide a precise, professional rationale explaining the underlying business logic, regulatory rule, or technical principle. Do not use option labels (e.g., avoid "Option 1 is correct..."). Reference the authoritative standard or concept where applicable. **Do not use LaTeX or MathJax in explanations.**
 
 $RP{comment-start}
 - **Calculation Question Rule:**

@@ -200,7 +200,16 @@ ion-modal {
   .nav-phone {
     display: flex;
   }
-  .container {
+/* Opaque page backing so the native iOS/Android WebView gray never shows
+   through when the theme is toggled. */
+html,
+body,
+ion-app,
+ion-content {
+  background-color: #f5f0f0;
+}
+
+.container {
     padding: 15px;
     flex-direction: column;
   }

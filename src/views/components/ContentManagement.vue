@@ -211,7 +211,7 @@ import mockup from '@/assets/prompts/mockup';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController, modalController } from '@ionic/vue';
 import TextModal from './TextModal.vue';
 import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, menuOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
-import { ref } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
 import { jsonrepair } from 'jsonrepair';
@@ -248,6 +248,119 @@ const selectedCertification = ref({
 });
 const calculation = ref(false);
 const mockupCalculation = ref(false);
+
+// Local draft persistence (IndexedDB).
+// Autosaves the whole working state so it survives app reload/closure.
+// The draft is cleared ONLY on "Create Again" or a successful "Save" (not "Save & Keep").
+// IndexedDB is used instead of localStorage because the question sets can be very large.
+const DB_NAME = 'eqiz-content-draft';
+const DRAFT_STORE = 'drafts';
+const DRAFT_KEY = 'current';
+
+const openDraftDB = (): Promise<IDBDatabase> => {
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(DRAFT_STORE)) {
+                db.createObjectStore(DRAFT_STORE);
+            }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+    });
+};
+
+const putDraft = async (value: any): Promise<void> => {
+    const db = await openDraftDB();
+    try {
+        await new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(DRAFT_STORE, 'readwrite');
+            tx.objectStore(DRAFT_STORE).put(value, DRAFT_KEY);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } finally {
+        db.close();
+    }
+};
+
+const getDraft = async (): Promise<any | null> => {
+    const db = await openDraftDB();
+    try {
+        return await new Promise<any | null>((resolve, reject) => {
+            const tx = db.transaction(DRAFT_STORE, 'readonly');
+            const req = tx.objectStore(DRAFT_STORE).get(DRAFT_KEY);
+            req.onsuccess = () => resolve(req.result ?? null);
+            req.onerror = () => reject(req.error);
+        });
+    } finally {
+        db.close();
+    }
+};
+
+const deleteDraft = async (): Promise<void> => {
+    const db = await openDraftDB();
+    try {
+        await new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(DRAFT_STORE, 'readwrite');
+            tx.objectStore(DRAFT_STORE).delete(DRAFT_KEY);
+            tx.oncomplete = () => resolve();
+            tx.onerror = () => reject(tx.error);
+        });
+    } finally {
+        db.close();
+    }
+};
+
+const persistDraft = async () => {
+    try {
+        const c = contentData.value;
+        const hasData = c.appId !== '' || (c.certifications && c.certifications.length > 0)
+            || (c.question && Object.keys(c.question).length > 0)
+            || (c.mockupQuestion && Object.keys(c.mockupQuestion).length > 0)
+            || (c.content && Object.keys(c.content).length > 0);
+        if (hasData) {
+            await putDraft(JSON.parse(JSON.stringify(c)));
+        } else {
+            await deleteDraft();
+        }
+    } catch (e) {
+        console.error('Failed to persist local draft', e);
+    }
+};
+
+let draftTimer: any = null;
+const schedulePersist = () => {
+    if (draftTimer) clearTimeout(draftTimer);
+    draftTimer = setTimeout(() => { persistDraft(); }, 800);
+};
+
+watch(contentData, schedulePersist, { deep: true });
+
+onMounted(async () => {
+    try {
+        const draft = await getDraft();
+        if (draft && (draft.appId || (draft.certifications && draft.certifications.length > 0))) {
+            contentData.value = {
+                appId: '',
+                appName: '',
+                certifications: [],
+                domains: {},
+                content: {},
+                question: {},
+                mockupQuestion: {},
+                remark: '',
+                ...draft
+            };
+            if (contentData.value.certifications.length > 0) {
+                selectedCertification.value = contentData.value.certifications[0];
+            }
+        }
+    } catch (e) {
+        console.error('Failed to restore local draft', e);
+    }
+});
 
 const setAppId = async ()=> {
     const alertInputs: any = [
@@ -1221,6 +1334,7 @@ const createAgain = ()=> {
         id: '',
         name: ''
     }
+    deleteDraft();
 }
 
 const loadMeta = async ()=> {
