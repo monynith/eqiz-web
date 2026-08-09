@@ -92,7 +92,7 @@ const buildChartOptions = () => {
                 },
                 ticks: {
                     font: {
-                        family: '"PT Sans"'
+                        family: '"Manrope"'
                     },
                     color: tickColor,
                 }
@@ -103,7 +103,7 @@ const buildChartOptions = () => {
                 },
                 ticks: {
                     font: {
-                        family: '"PT Sans"' // Target the y-axis labels
+                        family: '"Manrope"' // Target the y-axis labels
                     },
                     color: tickColor,
                 }
