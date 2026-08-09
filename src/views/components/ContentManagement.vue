@@ -195,6 +195,50 @@
             </div>             
         </div>
     </div>
+    <div id="summary-bar" v-if="summary && summary.certCount > 0">
+        <p class="sum-title">
+            <ion-icon :icon="summaryExpanded ? chevronUpOutline : chevronDownOutline" class="sum-toggle" @click="summaryExpanded = !summaryExpanded" :title="summaryExpanded ? 'Collapse' : 'Expand'"></ion-icon>
+            Content Process Summary ({{ summary.certCount }} Certification{{ summary.certCount > 1 ? 's' : '' }})
+        </p>
+        <div class="sum-table-wrap" v-if="summaryExpanded">
+            <table class="sum-table">
+                <thead>
+                    <tr>
+                        <th>Certification</th>
+                        <th>Dom</th>
+                        <th>G</th>
+                        <th>C</th>
+                        <th>E</th>
+                        <th>N</th>
+                        <th>Questions (per domain)</th>
+                        <th>Mock Up</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="c in summary.list" :key="c.id" :class="{ active: c.id === summary.activeId }" @click="selectCertSummary(c.id)">
+                        <td class="sum-name">{{ c.name }}</td>
+                        <td>{{ c.domainCount }}/4</td>
+                        <td :class="c.glossary ? 'ok' : 'no'">{{ c.glossary ? '✓' : '–' }}</td>
+                        <td :class="c.cheatsheet ? 'ok' : 'no'">{{ c.cheatsheet ? '✓' : '–' }}</td>
+                        <td :class="c.examtip ? 'ok' : 'no'">{{ c.examtip ? '✓' : '–' }}</td>
+                        <td :class="c.notes === 4 ? 'ok' : 'no'">{{ c.notes }}/4</td>
+                        <td>
+                            <span v-for="d in c.domainStats" :key="d.id" class="sum-chip" :class="{ done: d.done }" :title="d.part">{{ d.id }}:{{ d.count }}</span>
+                            <b :class="c.questionTotal >= c.questionTarget ? 'ok' : 'no'">{{ c.questionTotal }}/{{ c.questionTarget }}</b>
+                        </td>
+                        <td :class="c.mockupTotal >= c.mockupTarget ? 'ok' : 'no'">{{ c.mockupTotal }}/{{ c.mockupTarget }}</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="6">Total ({{ summary.certCount }})</td>
+                        <td><b>{{ summary.totalQuestion }}/{{ summary.totalQuestionTarget }}</b></td>
+                        <td><b>{{ summary.totalMockup }}</b></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
     <br />
 </template>
 
@@ -210,8 +254,8 @@ import question from '@/assets/prompts/question';
 import mockup from '@/assets/prompts/mockup';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController, modalController } from '@ionic/vue';
 import TextModal from './TextModal.vue';
-import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, menuOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
-import { ref, watch, onMounted } from 'vue';
+import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, chevronUpOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, menuOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
+import { ref, watch, onMounted, computed } from 'vue';
 import JSZip from 'jszip';
 import { createClient } from '@libsql/client';
 import { jsonrepair } from 'jsonrepair';
@@ -248,6 +292,7 @@ const selectedCertification = ref({
 });
 const calculation = ref(false);
 const mockupCalculation = ref(false);
+const summaryExpanded = ref(true);
 
 // Local draft persistence.
 // Autosaves the whole working state so it survives app reload/closure.
@@ -1976,6 +2021,55 @@ const getMockupCount = ()=> {
     const q = (contentData.value.mockupQuestion as any)[selectedCertification.value.id];
     return (q && q.length) ? q.length : 0;
 }
+
+const summary = computed(() => {
+    const certs = (contentData.value.certifications || []).slice();
+    if(certs.length === 0) return null;
+    const list = certs.map((cert: any) => {
+        const certId = cert.id;
+        const domains = ((contentData.value.domains as any)[certId] || []).slice();
+        const question = (contentData.value.question as any)[certId] || {};
+        const mockup = (contentData.value.mockupQuestion as any)[certId] || [];
+        const content = (contentData.value.content as any)[certId] || {};
+        const questionTarget = domains.length * 390;
+        const questionTotal = domains.reduce((sum: number, d: any) => sum + (question[d.id] ? question[d.id].length : 0), 0);
+        const notes = content['note'] ? ['A','B','C','D'].filter((p: string) => content['note'][p]).length : 0;
+        const domainStats = domains.map((d: any) => {
+            const count = question[d.id] ? question[d.id].length : 0;
+            return { id: d.id, part: d.part || d.name || '', count, done: count >= 390 };
+        });
+        return {
+            id: certId,
+            name: cert.name,
+            domainCount: domains.length,
+            glossary: !!content['glossary'],
+            cheatsheet: !!content['cheatsheet'],
+            examtip: !!content['examtip'],
+            notes,
+            questionTotal,
+            questionTarget,
+            mockupTotal: mockup.length,
+            mockupTarget: 200,
+            domainStats
+        };
+    });
+    const totalQuestion = list.reduce((s: number, c: any) => s + c.questionTotal, 0);
+    const totalQuestionTarget = list.reduce((s: number, c: any) => s + c.questionTarget, 0);
+    const totalMockup = list.reduce((s: number, c: any) => s + c.mockupTotal, 0);
+    return {
+        list,
+        certCount: list.length,
+        totalQuestion,
+        totalQuestionTarget,
+        totalMockup,
+        activeId: selectedCertification.value.id
+    };
+});
+
+const selectCertSummary = (id: string) => {
+    const c = (contentData.value.certifications as any).find((x: any) => x.id === id);
+    if(c) selectedCertification.value = c;
+};
 
 const generateMockupUntil = async ()=> {
     if(selectedCertification.value.id == '') return;
