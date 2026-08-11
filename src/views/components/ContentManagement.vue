@@ -15,8 +15,9 @@
             <!-- <span class="create-btn-standalone" @click="downloadContent()">DOWNLOAD CONTENT <ion-icon :icon="download"></ion-icon></span>
             <span class="create-btn-standalone" @click="loadQuestion()" v-if="contentData['certifications']">LOAD QUESTIONS <ion-icon :icon="cloudUpload"  style="position: relative; top: 2px;"></ion-icon></span>
             <span class="create-btn-standalone" @click="downloadQuestions()">DOWNLOAD QUESTIONS <ion-icon :icon="download"></ion-icon></span> -->
+            <span class="create-btn-standalone" @click="generateAllMenu" v-if="contentData['certifications'].length > 0">GENERATE ALL <ion-icon :icon="sparkles" style="position: relative; top: 2px;"></ion-icon></span>
             <span class="create-btn-standalone" @click="moreOption">OPTIONS <ion-icon :icon="attachOutline" style="position: relative; top: 2px;"></ion-icon></span>
-        </div>     
+        </div>       
         <div id="download-btn-wrapper" v-if="contentData['appId'] == ''">
             <input type="file" id="fileInput" style="display: none;" />
             <span class="create-btn-standalone" @click="loadMeta()">LOAD META (FILE)<ion-icon :icon="attachOutline" style="position: relative; top: 2px;"></ion-icon></span>            
@@ -1963,11 +1964,11 @@ const generateQuestionsUntil = async (domain: any)=> {
                         const dismiss = async ()=> {
                             if(dismissed) return;
                             dismissed = true;
-                            try { await loading.dismiss(); } catch (e) {}
+                            try { await loading.dismiss(); } catch (e) { /* ignore */ }
                         };
 
                         const loading = await loadingController.create({
-                            message: `Generating... (${getQuestionCount(domain)}/390)`,
+                            message: 'Generating...',
                             buttons: [{
                                 text: 'Cancel',
                                 handler: ()=> {
@@ -2090,7 +2091,7 @@ const generateMockupUntil = async ()=> {
                         };
 
                         const loading = await loadingController.create({
-                            message: `Generating... (${getMockupCount()}/200)`,
+                            message: 'Preparing generation...',
                             buttons: [{
                                 text: 'Cancel',
                                 handler: ()=> {
@@ -2130,6 +2131,266 @@ const generateMockupUntil = async ()=> {
                             });
 
                             await alert.present();
+                        }
+                    }, 0);
+                }
+            }
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const generateAllMenu = async ()=> {
+    if(contentData.value.certifications.length <= 0) return;
+    const actionSheet = await actionSheetController.create({
+        header: 'Generate All',
+        buttons: [
+            {
+                text: 'Generate All Questions',
+                handler: ()=> {
+                    setTimeout(() => { generateAllQuestions(); }, 0);
+                }
+            },
+            {
+                text: 'Generate All Mock Ups',
+                handler: ()=> {
+                    setTimeout(() => { generateAllMockups(); }, 0);
+                }
+            },
+            {
+                text: 'Cancel',
+                role: 'cancel'
+            }
+        ],
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const generateAllMockups = async ()=> {
+    if(contentData.value.certifications.length <= 0) {
+        const toast = await toastController.create({
+            message: 'Add a certification first.',
+            duration: 2500,
+            position: 'bottom',
+            color: "warning"
+        });
+        await toast.present();
+        return;
+    }
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        let cancelled = false;
+                        let dismissed = false;
+                        const dismiss = async ()=> {
+                            if(dismissed) return;
+                            dismissed = true;
+                            try { await loading.dismiss(); } catch (e) { /* ignore */ }
+                        };
+
+                        const loading = await loadingController.create({
+                            message: 'Preparing generation...',
+                            buttons: [{
+                                text: 'Cancel',
+                                handler: ()=> {
+                                    cancelled = true;
+                                    return false;
+                                }
+                            }]
+                        } as any);
+                        await loading.present();
+
+                        const previousCert = selectedCertification.value.id;
+                        const certCount = contentData.value.certifications.length;
+                        let certIndex = 0;
+
+                        loading.message = `Generating mock up questions for ${certCount} certification${certCount > 1 ? 's' : ''}...`;
+
+                        try {
+                            for (const cert of contentData.value.certifications as any[]) {
+                                certIndex++;
+                                selectedCertification.value = cert;
+                                if(cancelled) break;
+                                let prev = getMockupCount();
+                                let iterations = 0;
+                                while(!cancelled && prev < 200 && iterations < 60) {
+                                    iterations++;
+                                    await callAI('mockup', v);
+                                    const cur = getMockupCount();
+                                    loading.message = `${cert.name} (${certIndex}/${certCount}) — mock up ${cur}/200`;
+                                    if(cur <= prev) break;
+                                    prev = cur;
+                                }
+                            }
+                            await dismiss();
+                            const toast = await toastController.create({
+                                message: cancelled ? 'Generation cancelled.' : 'Finished generating all mock up questions.',
+                                duration: 2500,
+                                position: 'bottom',
+                                color: cancelled ? 'warning' : 'secondary'
+                            });
+                            await toast.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await dismiss();
+                            let savedCount = 0;
+                            for (const c of contentData.value.certifications as any[]) {
+                                const qs = (contentData.value.mockupQuestion as any)[c.id];
+                                if (qs) savedCount += (qs.length || 0);
+                            }
+                            const alert = await alertController.create({
+                                header: 'Error: AI',
+                                message: `${(error && error.message) ? error.message : error}\n\n${savedCount} mock up question(s) generated so far have been saved locally and will be restored automatically when you reopen this app.`,
+                                buttons: ['Ok']
+                            });
+                            await alert.present();
+                        } finally {
+                            try { await persistDraft(); } catch (e) { console.error('Failed to persist partial progress', e); }
+                        }
+
+                        if(previousCert != '') {
+                            const prev = contentData.value.certifications.find((c: any) => c.id === previousCert);
+                            if(prev) selectedCertification.value = prev;
+                        }
+                    }, 0);
+                }
+            }
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const generateAllQuestions = async ()=> {
+    const hasCerts = contentData.value.certifications.length > 0;
+    const hasDomains = hasCerts && contentData.value.certifications.some((c: any) => {
+        const domains = (contentData.value.domains as any)[c.id];
+        return domains && domains.length > 0;
+    });
+    if(!hasCerts) {
+        const toast = await toastController.create({
+            message: 'Add a certification first.',
+            duration: 2500,
+            position: 'bottom',
+            color: "warning"
+        });
+        await toast.present();
+        return;
+    }
+    if(!hasDomains) {
+        const toast = await toastController.create({
+            message: 'Add domains to a certification first.',
+            duration: 2500,
+            position: 'bottom',
+            color: "warning"
+        });
+        await toast.present();
+        return;
+    }
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        let cancelled = false;
+                        let dismissed = false;
+                        const dismiss = async ()=> {
+                            if(dismissed) return;
+                            dismissed = true;
+                            try { await loading.dismiss(); } catch (e) { /* ignore */ }
+                        };
+
+                        const loading = await loadingController.create({
+                            message: 'Generating...',
+                            buttons: [{
+                                text: 'Cancel',
+                                handler: ()=> {
+                                    cancelled = true;
+                                    return false;
+                                }
+                            }]
+                        } as any);
+                        await loading.present();
+
+                        const previousCert = selectedCertification.value.id;
+                        const certCount = contentData.value.certifications.length;
+                        const allDomainsTotal = contentData.value.certifications.reduce((sum: number, c: any) => {
+                            return sum + (((contentData.value.domains as any)[c.id] || []).length);
+                        }, 0);
+                        let certIndex = 0;
+                        let domainGlobalIndex = 0;
+
+                        loading.message = `Generating questions for ${certCount} certification${certCount > 1 ? 's' : ''} (${allDomainsTotal} domains)...`;
+
+                        try {
+                            for (const cert of contentData.value.certifications as any[]) {
+                                certIndex++;
+                                selectedCertification.value = cert;
+                                const domains = ((contentData.value.domains as any)[cert.id] || []) as any[];
+                                const domainCount = domains.length;
+
+                                for (let dIdx = 0; dIdx < domainCount; dIdx++) {
+                                    const domain = domains[dIdx];
+                                    domainGlobalIndex++;
+                                    if(cancelled) break;
+                                    let prev = getQuestionCount(domain);
+                                    let iterations = 0;
+                                    while(!cancelled && prev < 390 && iterations < 60) {
+                                        iterations++;
+                                        await callAI('question', v, domain);
+                                        const current = getQuestionCount(domain);
+                                        loading.message = `${cert.name} (${certIndex}/${certCount}) · Part ${domain['id']}: ${domain['part'] || domain['name'] || ''} — ${current}/390  [Domain ${domainGlobalIndex}/${allDomainsTotal}]`;
+                                        if(current <= prev) break;
+                                        prev = current;
+                                    }
+                                }
+
+                                if(cancelled) break;
+                            }
+                            await dismiss();
+                            const toast = await toastController.create({
+                                message: cancelled ? 'Generation cancelled.' : 'Finished generating all question batches.',
+                                duration: 2500,
+                                position: 'bottom',
+                                color: cancelled ? 'warning' : 'secondary'
+                            });
+                            await toast.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await dismiss();
+                            let savedCount = 0;
+                            for (const c of contentData.value.certifications as any[]) {
+                                const qs = (contentData.value.question as any)[c.id];
+                                if (qs) {
+                                    for (const k in qs) savedCount += ((qs[k] && qs[k].length) || 0);
+                                }
+                            }
+                            const alert = await alertController.create({
+                                header: 'Error: AI',
+                                message: `${(error && error.message) ? error.message : error}\n\n${savedCount} question(s) generated so far have been saved locally and will be restored automatically when you reopen this app.`,
+                                buttons: ['Ok']
+                            });
+                            await alert.present();
+                        } finally {
+                            try { await persistDraft(); } catch (e) { console.error('Failed to persist partial progress', e); }
+                        }
+
+                        if(previousCert != '') {
+                            const prev = contentData.value.certifications.find((c: any) => c.id === previousCert);
+                            if(prev) selectedCertification.value = prev;
                         }
                     }, 0);
                 }
