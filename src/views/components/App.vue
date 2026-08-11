@@ -3,6 +3,7 @@
     <div v-if="loading == false">
         <div id="create-btn-wrapper">
             <p id="create-btn" @click="createApp">Create New App</p>
+            <p id="export-btn" @click="openExport"><ion-icon :icon="downloadOutline"></ion-icon> Export</p>
         </div>
         <ion-searchbar
             class="blend-searchbar"
@@ -27,7 +28,7 @@
                     </tr>
                 </thead>
                 <tbody class="t-body">
-                    <tr v-for="app in apps" @click="editApp(app)">
+                    <tr v-for="app in apps" :key="app['id']" @click="editApp(app)">
                         <td class="date-cell">
                             <span class="main-text">{{ app['app_id'] }}</span>
                         </td>
@@ -49,11 +50,12 @@
 
 <script setup lang="ts">
 import { IonIcon, IonSearchbar, actionSheetController, modalController } from '@ionic/vue';
-import { arrowForwardOutline, chevronDownOutline } from 'ionicons/icons';
+import { arrowForwardOutline, chevronDownOutline, downloadOutline } from 'ionicons/icons';
 import Modal from '../components/CreateApp.vue';
 import { createClient } from '@libsql/client';
 import { ref } from 'vue';
 import Skeleton from './Skeleton.vue';
+import { exportToCsv, exportToExcel } from '../../utils/export';
 
 const loading = ref(true);
 const apps = ref([]);
@@ -76,6 +78,46 @@ const createApp = async () => {
         init();
     }
 }
+
+const exportHeaders = ['No.', 'App ID', 'Eqiz ID', 'Name', 'Price', 'Status'];
+
+const buildExportRows = (): (string | number)[][] => {
+    return (apps.value as any[]).map((app, index) => [
+        index + 1,
+        app['app_id'],
+        app['eqiz_id'],
+        app['name'],
+        app['price'],
+        app['status']
+    ]);
+}
+
+const openExport = async () => {
+    const actionSheet = await actionSheetController.create({
+        header: 'Export app list',
+        buttons: [
+            {
+                text: 'Export to CSV',
+                handler: () => {
+                    exportToCsv(exportHeaders, buildExportRows(), `apps-${Date.now()}.csv`);
+                }
+            },
+            {
+                text: 'Export to Excel',
+                handler: async () => {
+                    await exportToExcel(exportHeaders, buildExportRows(), `apps-${Date.now()}.xlsx`);
+                }
+            },
+            {
+                text: 'Cancel',
+                role: 'cancel'
+            }
+        ],
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+};
 
 const editApp = async (app: any) => {
     const modal = await modalController.create({
@@ -213,8 +255,8 @@ init();
     /* border: 1px solid #d9d4d4; */
     border-radius: 10px;
     overflow: hidden;
-    margin-bottom: 12px;
-    margin-top: 20px;    
+    margin-bottom: 30px;
+    margin-top: 0px;    
 }
 
 :global(.dark) .blend-searchbar {

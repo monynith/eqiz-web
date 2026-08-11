@@ -98,6 +98,24 @@
     cursor: pointer;
 }
 
+#export-btn {
+    width: fit-content;
+    margin-top: 50px;
+    margin-bottom: 20px;
+    margin-left: 20px;
+    color: palevioletred;
+    font-weight: bold;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#export-btn ion-icon {
+    font-size: 1rem;
+}
+
 .app-logo img {
     width: 40px;    
     border-radius: 8px;
