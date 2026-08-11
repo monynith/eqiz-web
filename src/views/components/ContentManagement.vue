@@ -291,10 +291,18 @@ const contentData = ref({
 const isDownloadable = ref(false);
 const selectedCertification = ref({
     id: '',
-    name: ''
+    name: '',
+    calculation: false,
+    mockupCalculation: false
 });
-const calculation = ref(false);
-const mockupCalculation = ref(false);
+const calculation = computed({
+    get: () => !!(selectedCertification.value && selectedCertification.value.calculation),
+    set: (v: boolean) => { if(selectedCertification.value) selectedCertification.value.calculation = v; }
+});
+const mockupCalculation = computed({
+    get: () => !!(selectedCertification.value && selectedCertification.value.mockupCalculation),
+    set: (v: boolean) => { if(selectedCertification.value) selectedCertification.value.mockupCalculation = v; }
+});
 const summaryExpanded = ref(true);
 
 // Local draft persistence.
@@ -655,7 +663,9 @@ const addCert = async ()=> {
 
                 (contentData.value.certifications as any).push({
                     id: data.certId,
-                    name: data.name
+                    name: data.name,
+                    calculation: false,
+                    mockupCalculation: false
                 })
             }            
         }
@@ -1345,7 +1355,9 @@ const createAgain = ()=> {
     };
     selectedCertification.value = {
         id: '',
-        name: ''
+        name: '',
+        calculation: false,
+        mockupCalculation: false
     }
     deleteDraft();
 }
@@ -1381,7 +1393,9 @@ const loadMeta = async ()=> {
             }
             selectedCertification.value = {
                 id: meta['certifications'][0].id,
-                name: meta['certifications'][0].name
+                name: meta['certifications'][0].name,
+                calculation: !!meta['certifications'][0].calculation,
+                mockupCalculation: !!meta['certifications'][0].mockupCalculation
             }
         }
     } catch(e) {
@@ -1490,7 +1504,9 @@ const loadFromDB = async (data: any)=> {
             if(deShortenString(meta['certifications'])[0]) {
                 selectedCertification.value = {
                     id: deShortenString(meta['certifications'])[0].id,
-                    name: deShortenString(meta['certifications'])[0].name
+                    name: deShortenString(meta['certifications'])[0].name,
+                    calculation: !!deShortenString(meta['certifications'])[0].calculation,
+                    mockupCalculation: !!deShortenString(meta['certifications'])[0].mockupCalculation
                 }
             }            
 
@@ -2155,21 +2171,19 @@ const generateAllMenu = async ()=> {
     const modal = await modalController.create({
         component: GenerateAllModal,
         componentProps: {
-            calculation: calculation.value,
-            mockupCalculation: mockupCalculation.value,
-            onCheckCalculation: async () => {
-                if(!selectedCertification.value.id && contentData.value.certifications.length > 0) {
-                    selectedCertification.value = contentData.value.certifications[0];
-                }
-                await checkCalculation();
-                return calculation.value;
+            certifications: contentData.value.certifications.map((c: any) => ({
+                id: c.id,
+                name: c.name,
+                calculation: !!c.calculation,
+                mockupCalculation: !!c.mockupCalculation
+            })),
+            onCheckCert: async (certId: string, kind: 'question' | 'mockup'): Promise<boolean> => {
+                const cert = (contentData.value.certifications as any[]).find((c) => c.id === certId);
+                if(cert) selectedCertification.value = cert;
+                return kind === 'question' ? await checkCalculation() : await checkMockupCalculation();
             },
-            onCheckMockupCalculation: async () => {
-                if(!selectedCertification.value.id && contentData.value.certifications.length > 0) {
-                    selectedCertification.value = contentData.value.certifications[0];
-                }
-                await checkMockupCalculation();
-                return mockupCalculation.value;
+            onCheckAll: async (kind: 'question' | 'mockup'): Promise<Record<string, boolean>> => {
+                return checkAllCalculation(kind);
             }
         },
         breakpoints: [0, 1],
@@ -2179,8 +2193,15 @@ const generateAllMenu = async ()=> {
     await modal.present();
     const { data } = await modal.onDidDismiss();
     if(!data) return;
-    calculation.value = data.calculation;
-    mockupCalculation.value = data.mockupCalculation;
+    if(data.certifications) {
+        for (const c of data.certifications as any[]) {
+            const cert = (contentData.value.certifications as any[]).find((x) => x.id === c.id);
+            if(cert) {
+                cert.calculation = !!c.calculation;
+                cert.mockupCalculation = !!c.mockupCalculation;
+            }
+        }
+    }
     if(data.type === 'questions') generateAllQuestions();
     else if(data.type === 'mockups') generateAllMockups();
 }
@@ -2438,101 +2459,134 @@ const generateAllQuestions = async ()=> {
     await actionSheet.present();
 }
 
-const checkCalculation = async ()=> {
-    if(selectedCertification.value.id == '') return;
+const runCalcCheck = (kind: 'question' | 'mockup'): Promise<boolean> => {
+    return new Promise((resolve) => {
+        if(selectedCertification.value.id == '') { resolve(false); return; }
 
-    const actionSheet = await actionSheetController.create({
-        header: 'Pick Model',
-        buttons: AI_MODELS.map((v) => {
-            return {
-                text: v,
-                handler: ()=> {
-                    setTimeout(async ()=> {
+        const actionSheet = actionSheetController.create({
+            header: 'Pick Model',
+            buttons: AI_MODELS.map((v) => {
+                return {
+                    text: v,
+                    handler: async () => {
                         const loading = await loadingController.create({
                             message: 'Checking...'
                         });
-                        loading.present();
+                        await loading.present();
 
                         try {
                             const answer = await callAI('calc', v);
                             const match = (answer || '').match(/HAS_CALCULATION:\s*(yes|no)/i);
+                            let result = false;
                             if(match) {
-                                calculation.value = /^yes/i.test(match[1]);
+                                result = /^yes/i.test(match[1]);
+                                if(kind === 'question') calculation.value = result;
+                                else mockupCalculation.value = result;
                             }
                             await loading.dismiss();
                             const alert = await alertController.create({
-                                header: 'Calculation Check',
+                                header: kind === 'mockup' ? 'Mock Up Calculation Check' : 'Calculation Check',
                                 message: answer || 'No response.',
                                 buttons: ['Ok']
                             });
                             await alert.present();
+                            resolve(result);
                         } catch (error: any) {
                             console.log(error);
                             await loading.dismiss();
                             const alert = await alertController.create({
-                                header: 'Error: AI',                        
+                                header: 'Error: AI',
                                 message: error,
                                 buttons: ['Ok'],
                             });
                             await alert.present();
+                            resolve(false);
                         }
-                    }, 0); 
-                }
-            }            
-        }),
-        mode: 'md'
+                    }
+                };
+            }),
+            mode: 'md'
+        });
+
+        actionSheet.then((sheet) => sheet.present());
     });
+};
 
-    await actionSheet.present();
-}
+const checkCalculation = async (): Promise<boolean> => {
+    return runCalcCheck('question');
+};
 
-const checkMockupCalculation = async ()=> {
-    if(selectedCertification.value.id == '') return;
+const checkMockupCalculation = async (): Promise<boolean> => {
+    return runCalcCheck('mockup');
+};
 
-    const actionSheet = await actionSheetController.create({
-        header: 'Pick Model',
-        buttons: AI_MODELS.map((v) => {
-            return {
-                text: v,
-                handler: ()=> {
-                    setTimeout(async ()=> {
+const checkAllCalculation = (kind: 'question' | 'mockup'): Promise<Record<string, boolean>> => {
+    return new Promise((resolve) => {
+        if(contentData.value.certifications.length <= 0) { resolve({}); return; }
+
+        const actionSheet = actionSheetController.create({
+            header: 'Pick Model',
+            buttons: AI_MODELS.map((v) => {
+                return {
+                    text: v,
+                    handler: async () => {
+                        const results: Record<string, boolean> = {};
                         const loading = await loadingController.create({
-                            message: 'Checking...'
+                            message: 'Checking calculations...'
                         });
-                        loading.present();
+                        await loading.present();
 
+                        const previousCert = selectedCertification.value.id;
                         try {
-                            const answer = await callAI('calc', v);
-                            const match = (answer || '').match(/HAS_CALCULATION:\s*(yes|no)/i);
-                            if(match) {
-                                mockupCalculation.value = /^yes/i.test(match[1]);
+                            for (const cert of contentData.value.certifications as any[]) {
+                                selectedCertification.value = cert;
+                                try {
+                                    const answer = await callAI('calc', v);
+                                    const match = (answer || '').match(/HAS_CALCULATION:\s*(yes|no)/i);
+                                    const result = match ? /^yes/i.test(match[1]) : false;
+                                    results[cert.id] = result;
+                                    if(kind === 'question') cert.calculation = result;
+                                    else cert.mockupCalculation = result;
+                                } catch (e) {
+                                    console.error('Calc check failed for', cert.id, e);
+                                    results[cert.id] = false;
+                                }
+                                loading.message = `Checking calculations... (${Object.keys(results).length}/${contentData.value.certifications.length})`;
                             }
                             await loading.dismiss();
+                            const yesCount = Object.values(results).filter(Boolean).length;
                             const alert = await alertController.create({
-                                header: 'Mock Up Calculation Check',
-                                message: answer || 'No response.',
+                                header: kind === 'mockup' ? 'Mock Up Calculation Check' : 'Calculation Check',
+                                message: `Checked ${contentData.value.certifications.length} certification(s). ${yesCount} include calculation questions.`,
                                 buttons: ['Ok']
                             });
                             await alert.present();
+                            resolve(results);
                         } catch (error: any) {
                             console.log(error);
                             await loading.dismiss();
                             const alert = await alertController.create({
-                                header: 'Error: AI',                        
+                                header: 'Error: AI',
                                 message: error,
-                                buttons: ['Ok']
+                                buttons: ['Ok'],
                             });
                             await alert.present();
+                            resolve(results);
+                        } finally {
+                            if(previousCert != '') {
+                                const prev = contentData.value.certifications.find((c: any) => c.id === previousCert);
+                                if(prev) selectedCertification.value = prev;
+                            }
                         }
-                    }, 0); 
-                }
-            }            
-        }),
-        mode: 'md'
-    });
+                    }
+                };
+            }),
+            mode: 'md'
+        });
 
-    await actionSheet.present();
-}
+        actionSheet.then((sheet) => sheet.present());
+    });
+};
 
 const validateQuestionsQuality = async (domain: any) => {
     if(selectedCertification.value.id == '' || !domain) return;

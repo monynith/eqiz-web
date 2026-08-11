@@ -232,3 +232,32 @@
   color: var(--eq-pink) !important;
 }
 
+/* Create App / Create Order modals: recolor the sheet and the ion-list /
+   ion-item area so it is not a near-black #121212 in dark mode. */
+.ion-palette-dark .create-app-modal,
+.ion-palette-dark .create-order-modal {
+  --ion-background-color: var(--eq-surface);
+  --ion-toolbar-background: var(--eq-surface);
+  --ion-item-background: transparent;
+}
+.ion-palette-dark .create-app-modal::part(content),
+.ion-palette-dark .create-order-modal::part(content),
+.ion-palette-dark .create-app-modal .modal-wrapper,
+.ion-palette-dark .create-order-modal .modal-wrapper,
+.ion-palette-dark .create-app-modal .modal-sheet,
+.ion-palette-dark .create-order-modal .modal-sheet,
+.ion-palette-dark .create-app-modal .modal-card,
+.ion-palette-dark .create-order-modal .modal-card,
+.ion-palette-dark .create-app-modal .ion-page,
+.ion-palette-dark .create-order-modal .ion-page {
+  background: var(--eq-surface);
+}
+.ion-palette-dark .create-app-modal ion-item,
+.ion-palette-dark .create-order-modal ion-item,
+.ion-palette-dark .create-app-modal ion-list,
+.ion-palette-dark .create-order-modal ion-list {
+  --background: transparent;
+  --ion-color-base: transparent;
+  --ion-item-background: transparent;
+}
+

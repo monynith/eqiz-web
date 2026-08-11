@@ -67,7 +67,8 @@ const createApp = async () => {
         component: Modal,
         initialBreakpoint: 1,
         breakpoints: [0, 1],
-        mode: "md"
+        mode: "md",
+        cssClass: "create-app-modal"
     });
 
     modal.present();
@@ -125,6 +126,7 @@ const editApp = async (app: any) => {
         initialBreakpoint: 1,
         breakpoints: [0, 1],
         mode: "md",
+        cssClass: "create-app-modal",
         componentProps: {
             app,
             isEdit: true
@@ -243,29 +245,20 @@ init();
 .blend-searchbar {
     margin: 16px 0;
     padding: 0;
-    --background: #ededed;
+    --background: var(--eq-surface-2, #ededed);
     --box-shadow: none;
     --border-radius: 10px;
-    --color: black;
-    --placeholder-color: #9c9c9c;
-    --icon-color: #9c9c9c;
-    --clear-button-color: #9c9c9c;
+    --color: var(--eq-text, black);
+    --placeholder-color: var(--eq-text-dim, #9c9c9c);
+    --icon-color: var(--eq-text-dim, #9c9c9c);
+    --clear-button-color: var(--eq-text-dim, #9c9c9c);
     --height: 35px;
     --placeholder-font-size: 0.9rem;
     /* border: 1px solid #d9d4d4; */
     border-radius: 10px;
     overflow: hidden;
     margin-bottom: 30px;
-    margin-top: 0px;    
-}
-
-:global(.dark) .blend-searchbar {
-    --background: #1e1e1e;
-    --color: #ffffff;
-    --placeholder-color: #aaaaaa;
-    --icon-color: #aaaaaa;
-    --clear-button-color: #aaaaaa;
-    border-color: #3a3a3a;
+    margin-top: 0px;
 }
 
 .blend-searchbar :deep(.searchbar-input) {
@@ -277,7 +270,7 @@ init();
 
 .blend-searchbar :deep(.searchbar-search-icon) {
     margin-left: 0px;
-    color: #888;
+    color: var(--eq-text-dim, #888);
     width: 18px;
     height: 18px;
     margin-top: 3px;

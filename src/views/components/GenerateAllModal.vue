@@ -8,26 +8,46 @@
                 </div>
             </div>
             <div class="body">
-                <div class="toggle-row">
-                    <span>Questions: Include Calculation?</span>
-                    <div class="toggle-controls">
-                        <ion-icon :icon="sparklesOutline" class="ai-icon" :class="{ checking: checkingCalc }" @click="checkCalc" title="Check calculation questions with AI"></ion-icon>
-                        <ion-toggle mode="md" :checked="calculation" @click="toggleCalc"></ion-toggle>
+                <div class="section">
+                    <div class="section-head">
+                        <span class="section-title">Questions: Include Calculation?</span>
+                        <span class="check-all" @click="checkAll('question')" :class="{ checking: anyChecking('question') }">Check All</span>
+                    </div>
+                    <div class="cert-list">
+                        <div class="cert-row" v-for="c in items" :key="c.id">
+                            <span class="cert-name">{{ c.name }}</span>
+                            <div class="toggle-controls">
+                                <ion-icon :icon="sparklesOutline" class="ai-icon" :class="{ checking: checkingMap[c.id + '-q'] }" @click="checkCert(c, 'question')" title="Check calculation questions with AI"></ion-icon>
+                                <ion-toggle mode="md" :checked="c.calculation" @click="c.calculation = !c.calculation"></ion-toggle>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="toggle-row">
-                    <span>Mock Ups: Include Calculation?</span>
-                    <div class="toggle-controls">
-                        <ion-icon :icon="sparklesOutline" class="ai-icon" :class="{ checking: checkingMockup }" @click="checkMockupCalc" title="Check calculation mock ups with AI"></ion-icon>
-                        <ion-toggle mode="md" :checked="mockupCalculation" @click="toggleMockupCalc"></ion-toggle>
+
+                <div class="section">
+                    <div class="section-head">
+                        <span class="section-title">Mock Ups: Include Calculation?</span>
+                        <span class="check-all" @click="checkAll('mockup')" :class="{ checking: anyChecking('mockup') }">Check All</span>
+                    </div>
+                    <div class="cert-list">
+                        <div class="cert-row" v-for="c in items" :key="c.id">
+                            <span class="cert-name">{{ c.name }}</span>
+                            <div class="toggle-controls">
+                                <ion-icon :icon="sparklesOutline" class="ai-icon" :class="{ checking: checkingMap[c.id + '-m'] }" @click="checkCert(c, 'mockup')" title="Check mock up calculation questions with AI"></ion-icon>
+                                <ion-toggle mode="md" :checked="c.mockupCalculation" @click="c.mockupCalculation = !c.mockupCalculation"></ion-toggle>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
                 <div class="gen-all-actions">
+                    <br/>
                     <span class="action-btn" @click="generate('questions')">GENERATE ALL QUESTIONS</span>
                     <span class="action-btn" @click="generate('mockups')">GENERATE ALL MOCK UPS</span>
+                    <br/>                    
                 </div>
             </div>
-        </div>
+        </div>        
     </div>
 </template>
 
@@ -36,53 +56,66 @@ import { IonIcon, IonToggle, modalController } from '@ionic/vue';
 import { ref } from 'vue';
 import { sparklesOutline } from 'ionicons/icons';
 
-const props = defineProps<{
+type CertCalc = {
+    id: string;
+    name: string;
     calculation: boolean;
     mockupCalculation: boolean;
-    onCheckCalculation?: () => Promise<boolean>;
-    onCheckMockupCalculation?: () => Promise<boolean>;
+};
+
+const props = defineProps<{
+    certifications: CertCalc[];
+    onCheckCert?: (certId: string, kind: 'question' | 'mockup') => Promise<boolean>;
+    onCheckAll?: (kind: 'question' | 'mockup') => Promise<Record<string, boolean>>;
 }>();
 
-const calculation = ref(props.calculation);
-const mockupCalculation = ref(props.mockupCalculation);
-const checkingCalc = ref(false);
-const checkingMockup = ref(false);
+const items = ref<CertCalc[]>(props.certifications.map((c) => ({ ...c })));
+const checkingMap = ref<Record<string, boolean>>({});
 
-const toggleCalc = () => { calculation.value = !calculation.value; };
-const toggleMockupCalc = () => { mockupCalculation.value = !mockupCalculation.value; };
+const keyFor = (id: string, kind: 'question' | 'mockup') => id + (kind === 'question' ? '-q' : '-m');
 
-const checkCalc = async () => {
-    if(!props.onCheckCalculation || checkingCalc.value) return;
-    checkingCalc.value = true;
+const anyChecking = (kind: 'question' | 'mockup') => {
+    return items.value.some((c) => checkingMap.value[keyFor(c.id, kind)]);
+};
+
+const checkCert = async (c: CertCalc, kind: 'question' | 'mockup') => {
+    const k = keyFor(c.id, kind);
+    if(!props.onCheckCert || checkingMap.value[k]) return;
+    checkingMap.value[k] = true;
     try {
-        calculation.value = await props.onCheckCalculation();
+        const result = await props.onCheckCert(c.id, kind);
+        if(kind === 'question') c.calculation = result;
+        else c.mockupCalculation = result;
     } finally {
-        checkingCalc.value = false;
+        checkingMap.value[k] = false;
     }
 };
 
-const checkMockupCalc = async () => {
-    if(!props.onCheckMockupCalculation || checkingMockup.value) return;
-    checkingMockup.value = true;
+const checkAll = async (kind: 'question' | 'mockup') => {
+    if(!props.onCheckAll || anyChecking(kind)) return;
+    for (const c of items.value) checkingMap.value[keyFor(c.id, kind)] = true;
     try {
-        mockupCalculation.value = await props.onCheckMockupCalculation();
+        const map = await props.onCheckAll(kind);
+        for (const c of items.value) {
+            const v = !!(map && map[c.id]);
+            if(kind === 'question') c.calculation = v;
+            else c.mockupCalculation = v;
+        }
     } finally {
-        checkingMockup.value = false;
+        for (const c of items.value) checkingMap.value[keyFor(c.id, kind)] = false;
     }
 };
 
 const close = async () => {
     await modalController.dismiss({
-        calculation: calculation.value,
-        mockupCalculation: mockupCalculation.value,
+        certifications: items.value,
         type: null
     });
 };
 
 const generate = async (type: string) => {
     await modalController.dismiss({
-        calculation: calculation.value,
-        mockupCalculation: mockupCalculation.value,
+        certifications: items.value,
         type
     });
 };
@@ -101,7 +134,8 @@ const generate = async (type: string) => {
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #fff;
+    background: var(--eq-surface, #fff);
+    color: var(--eq-text, #000);
 }
 #toolbar {
     flex-shrink: 0;
@@ -109,17 +143,17 @@ const generate = async (type: string) => {
     align-items: center;
     justify-content: space-between;
     padding: 14px 16px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--eq-border, #ddd);
 }
 #title {
     font-weight: bold;
     font-size: 16px;
     text-transform: uppercase;
-    color: #000;
+    color: var(--eq-text, #000);
 }
 #btn-close {
     cursor: pointer;
-    color: palevioletred;
+    color: var(--eq-pink, palevioletred);
     font-weight: bold;
 }
 .body {
@@ -127,22 +161,66 @@ const generate = async (type: string) => {
     overflow-y: auto;
     padding: 18px 16px;
 }
-.toggle-row {
+.section {
+    margin-bottom: 22px;
+}
+.section-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 0;
-    border-bottom: 1px solid #eee;
+    margin-bottom: 6px;
+}
+.section-title {
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: var(--eq-text, #000);
+}
+.check-all {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: var(--eq-pink, palevioletred);
+    cursor: pointer;
+    border: 1px solid var(--eq-pink, palevioletred);
+    border-radius: 6px;
+    padding: 4px 10px;
+}
+.check-all.checking {
+    opacity: 0.4;
+    cursor: default;
+}
+.cert-list {
+    border: 1px solid var(--eq-border, #eee);
+    border-radius: 8px;
+    padding: 4px 10px;
+    background: var(--eq-surface-2, #fafafa);
+}
+.cert-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--eq-border, #f2f2f2);
     font-size: 0.9rem;
+    color: var(--eq-text, #000);
+}
+.cert-row:last-child {
+    border-bottom: none;
+}
+.cert-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-right: 12px;
 }
 .toggle-controls {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
 }
 .ai-icon {
     font-size: 1.15rem;
-    color: palevioletred;
+    color: var(--eq-pink, palevioletred);
     cursor: pointer;
 }
 .ai-icon.checking {
@@ -156,13 +234,13 @@ const generate = async (type: string) => {
     margin-top: 24px;
 }
 .action-btn {
-    color: palevioletred;
+    color: var(--eq-pink, palevioletred);
     font-weight: bold;
     font-size: 0.95rem;
     cursor: pointer;
     text-align: center;
     padding: 14px;
-    border: 1px solid palevioletred;
+    border: 1px solid var(--eq-pink, palevioletred);
     border-radius: 8px;
 }
 </style>

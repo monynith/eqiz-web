@@ -1,12 +1,15 @@
 #container {
     padding: 20px 30px;
     width: 100%;
+    background: var(--eq-surface, #fff);
+    color: var(--eq-text, #000);
 }
 
 #title {
     font-weight: bold;
     font-size: 1.2rem;
     margin-bottom: 10px;
+    color: var(--eq-text, #000);
 }
 
 #img-pick {
@@ -47,6 +50,11 @@
     margin-top: 0px;
 }
 
+#input-list,
+#input-list ion-item {
+    --background: transparent;
+}
+
 #input-list ion-item {
     --padding-start: 0px;
     margin-bottom: 0px;
@@ -55,7 +63,7 @@
 .my-custom-label {
   font-size: 1.1rem !important;  
   margin-bottom: 25px;
-  color: #585858;
+  color: var(--eq-text-dim, #585858);
 }
 
 #input-list ion-input {
@@ -102,7 +110,7 @@
 
 ion-select.store-select::part(label) {  
   font-size: 1.1rem;
-  color: #585858;  
+  color: var(--eq-text-dim, #585858);  
   margin-top: 12px;
 }
 

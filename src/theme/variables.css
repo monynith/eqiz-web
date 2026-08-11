@@ -46,3 +46,14 @@ ion-alert,
 :focus-visible {
   outline: none !important;
 }
+
+/* App chrome surface tokens (light mode defaults; dark overrides live in dark.css).
+   Used by custom (non-Ionic) components so they adapt to theme switches. */
+:root {
+  --eq-surface: #ffffff;
+  --eq-surface-2: #f4f5f8;
+  --eq-border: #e0e0e0;
+  --eq-text: #000000;
+  --eq-text-dim: #666666;
+  --eq-pink: #db7093;
+}

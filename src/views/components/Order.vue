@@ -75,6 +75,7 @@ const addOrder = async ()=> {
         initialBreakpoint: 1,
         breakpoints: [0, 1],
         mode: "md",
+        cssClass: "create-order-modal",
         componentProps: {
             apps: apps.value
         }
@@ -95,6 +96,7 @@ const editOrder = async (order: any)=> {
         initialBreakpoint: 1,
         breakpoints: [0, 1],
         mode: "md",
+        cssClass: "create-order-modal",
         componentProps: {
             order,
             isEdit: true,
