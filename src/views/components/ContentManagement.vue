@@ -18,6 +18,7 @@
             <span class="create-btn-standalone" @click="generateAllMenu" v-if="contentData['certifications'].length > 0">GENERATE ALL <ion-icon :icon="sparkles" style="position: relative; top: 2px;"></ion-icon></span>
             <span class="create-btn-standalone" @click="moreOption">OPTIONS <ion-icon :icon="attachOutline" style="position: relative; top: 2px;"></ion-icon></span>
         </div>       
+
         <div id="download-btn-wrapper" v-if="contentData['appId'] == ''">
             <input type="file" id="fileInput" style="display: none;" />
             <span class="create-btn-standalone" @click="loadMeta()">LOAD META (FILE)<ion-icon :icon="attachOutline" style="position: relative; top: 2px;"></ion-icon></span>            
@@ -255,6 +256,7 @@ import question from '@/assets/prompts/question';
 import mockup from '@/assets/prompts/mockup';
 import { actionSheetController, alertController, IonIcon, toastController, IonToggle, loadingController, modalController } from '@ionic/vue';
 import TextModal from './TextModal.vue';
+import GenerateAllModal from './GenerateAllModal.vue';
 import { add, attachOutline, attachSharp, browsersOutline, checkmarkCircleSharp, checkmarkDoneSharp, chevronDownOutline, chevronUpOutline, closeCircleOutline, cloudUpload, codeOutline, copyOutline, createOutline, documentTextOutline, download, ellipseSharp, ellipsisHorizontalSharp, ellipsisVerticalSharp, flashOutline, menuOutline, openOutline, scanOutline, sparkles, sparklesOutline, unlinkOutline, unlinkSharp } from 'ionicons/icons';
 import { ref, watch, onMounted, computed } from 'vue';
 import JSZip from 'jszip';
@@ -2150,30 +2152,37 @@ const generateMockupUntil = async ()=> {
 
 const generateAllMenu = async ()=> {
     if(contentData.value.certifications.length <= 0) return;
-    const actionSheet = await actionSheetController.create({
-        header: 'Generate All',
-        buttons: [
-            {
-                text: 'Generate All Questions',
-                handler: ()=> {
-                    setTimeout(() => { generateAllQuestions(); }, 0);
+    const modal = await modalController.create({
+        component: GenerateAllModal,
+        componentProps: {
+            calculation: calculation.value,
+            mockupCalculation: mockupCalculation.value,
+            onCheckCalculation: async () => {
+                if(!selectedCertification.value.id && contentData.value.certifications.length > 0) {
+                    selectedCertification.value = contentData.value.certifications[0];
                 }
+                await checkCalculation();
+                return calculation.value;
             },
-            {
-                text: 'Generate All Mock Ups',
-                handler: ()=> {
-                    setTimeout(() => { generateAllMockups(); }, 0);
+            onCheckMockupCalculation: async () => {
+                if(!selectedCertification.value.id && contentData.value.certifications.length > 0) {
+                    selectedCertification.value = contentData.value.certifications[0];
                 }
-            },
-            {
-                text: 'Cancel',
-                role: 'cancel'
+                await checkMockupCalculation();
+                return mockupCalculation.value;
             }
-        ],
+        },
+        breakpoints: [0, 1],
+        initialBreakpoint: 1,
         mode: 'md'
     });
-
-    await actionSheet.present();
+    await modal.present();
+    const { data } = await modal.onDidDismiss();
+    if(!data) return;
+    calculation.value = data.calculation;
+    mockupCalculation.value = data.mockupCalculation;
+    if(data.type === 'questions') generateAllQuestions();
+    else if(data.type === 'mockups') generateAllMockups();
 }
 
 const generateAllMockups = async ()=> {
