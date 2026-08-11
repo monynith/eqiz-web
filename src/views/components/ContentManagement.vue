@@ -1712,6 +1712,10 @@ const AI_ENDPOINTS = [
     "https://kilo-ai.n-o.deno.net/"
 ];
 
+// How many AI batch requests to fire concurrently per domain/cert while generating.
+// Network calls are parallelized; results are merged sequentially to avoid races.
+const GEN_CONCURRENCY = 4;
+
 const postAI = async (url: string, data: any) => {
     const response = await CapacitorHttp.post({
         url,
@@ -1729,7 +1733,7 @@ const postAI = async (url: string, data: any) => {
     return response;
 };
 
-const processAIResult = (type: string, domain: any, content: string) => {
+const processAIResult = (type: string, domain: any, content: string, write: boolean = true) => {
     const json = content || '';
     if (json && json != '') {
         if(type == 'calc') return json;
@@ -1737,19 +1741,21 @@ const processAIResult = (type: string, domain: any, content: string) => {
             const jsonString = jsonrepair(json); 
             const parsed = JSON.parse(jsonString);
             const questions = parsed['data'] || parsed;
-            if (questions.length > 0) {    
+            if (write && questions.length > 0) {    
                 if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};                
                 if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
                 (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = validateQuestions(questions, domain);
             }
+            return questions;
         } else if(type == 'mockup') {
             const jsonString = jsonrepair(json);
             const parsed = JSON.parse(jsonString);
             const questions = parsed['data'] || parsed;
-            if (questions.length > 0) {
+            if (write && questions.length > 0) {
                 if(!(contentData.value.mockupQuestion as any)[selectedCertification.value.id]) (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = [];
                 (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = validateMockupQuestions(questions);
             }
+            return questions;
         } else if(type == 'domain') {
             const jsonString = jsonrepair(json); 
             const parsed = JSON.parse(jsonString);
@@ -1767,9 +1773,9 @@ const processAIResult = (type: string, domain: any, content: string) => {
     }
 }
 
-const callAI = async (type: string, model: string, domain?: any)=> {
+const callAI = async (type: string, model: string, domain?: any, write: boolean = true)=> {
     if (model === 'gemini/official') {
-        return await callGemini(type, domain);
+        return await callGemini(type, domain, write);
     }
 
     const str = buildPrompt(type, domain);             
@@ -1798,10 +1804,10 @@ const callAI = async (type: string, model: string, domain?: any)=> {
     }
 
     const result = response.data;
-    return processAIResult(type, domain, result['content'] || '');
+    return processAIResult(type, domain, result['content'] || '', write);
 }
 
-const callGemini = async (type: string, domain?: any)=> {
+const callGemini = async (type: string, domain?: any, write: boolean = true)=> {
     const str = buildPrompt(type, domain);             
     const model = localStorage.getItem("GEMINI_MODEL");
     const key = localStorage.getItem("GEMINI_KEY") || '';
@@ -1841,7 +1847,7 @@ const callGemini = async (type: string, domain?: any)=> {
         ? result['candidates'][0]['content']['parts'][0]['text'].replace(/^```(?:json)?\s*|\s*```$/g, "").trim()
         : '';
 
-    return processAIResult(type, domain, json);
+    return processAIResult(type, domain, json, write);
 }
 
 const showAI = async (type: string, domain?: any)=> {
@@ -2224,7 +2230,17 @@ const generateAllMockups = async ()=> {
                                 let iterations = 0;
                                 while(!cancelled && prev < 200 && iterations < 60) {
                                     iterations++;
-                                    await callAI('mockup', v);
+                                    const tasks: Promise<any>[] = [];
+                                    for (let k = 0; k < GEN_CONCURRENCY; k++) {
+                                        tasks.push(callAI('mockup', v, undefined, false));
+                                    }
+                                    const settled = await Promise.allSettled(tasks);
+                                    for (const s of settled) {
+                                        if (s.status === 'fulfilled' && s.value && s.value.length > 0) {
+                                            if(!(contentData.value.mockupQuestion as any)[selectedCertification.value.id]) (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = [];
+                                            (contentData.value.mockupQuestion as any)[selectedCertification.value.id] = validateMockupQuestions(s.value);
+                                        }
+                                    }
                                     const cur = getMockupCount();
                                     loading.message = `${cert.name} (${certIndex}/${certCount}) — mock up ${cur}/200`;
                                     if(cur <= prev) break;
@@ -2314,7 +2330,7 @@ const generateAllQuestions = async ()=> {
                         };
 
                         const loading = await loadingController.create({
-                            message: 'Generating...',
+                            message: 'Preparing generation...',
                             buttons: [{
                                 text: 'Cancel',
                                 handler: ()=> {
@@ -2350,7 +2366,18 @@ const generateAllQuestions = async ()=> {
                                     let iterations = 0;
                                     while(!cancelled && prev < 390 && iterations < 60) {
                                         iterations++;
-                                        await callAI('question', v, domain);
+                                        const tasks: Promise<any>[] = [];
+                                        for (let k = 0; k < GEN_CONCURRENCY; k++) {
+                                            tasks.push(callAI('question', v, domain, false));
+                                        }
+                                        const settled = await Promise.allSettled(tasks);
+                                        for (const s of settled) {
+                                            if (s.status === 'fulfilled' && s.value && s.value.length > 0) {
+                                                if(!(contentData.value.question as any)[selectedCertification.value.id]) (contentData.value.question as any)[selectedCertification.value.id] = {};
+                                                if(!(contentData.value.question as any)[selectedCertification.value.id][domain['id']]) (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = [];
+                                                (contentData.value.question as any)[selectedCertification.value.id][domain['id']] = validateQuestions(s.value, domain);
+                                            }
+                                        }
                                         const current = getQuestionCount(domain);
                                         loading.message = `${cert.name} (${certIndex}/${certCount}) · Part ${domain['id']}: ${domain['part'] || domain['name'] || ''} — ${current}/390  [Domain ${domainGlobalIndex}/${allDomainsTotal}]`;
                                         if(current <= prev) break;
