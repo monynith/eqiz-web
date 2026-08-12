@@ -108,6 +108,23 @@
     font-size: 1rem;
 }
 
+.button-wrapper .delete-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: palevioletred;
+    margin-right: 16px;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.button-wrapper .delete-btn ion-icon {
+    color: palevioletred;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
 ion-select.store-select::part(label) {  
   font-size: 1.1rem;
   color: var(--eq-text-dim, #585858);  

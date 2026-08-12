@@ -38,6 +38,10 @@
                 </ion-item>
             </ion-list>
             <div class="text-right button-wrapper" v-if="isEdit == true">
+                <span class="delete-btn" @click="deleteOrder" v-if="!loading">
+                    <ion-icon :icon="trashOutline"></ion-icon>
+                    <span>Delete</span>
+                </span>
                 <p id="button" @click="create">{{ loading == true ? 'Editing...' : 'Edit' }}</p>
                 <ion-icon :icon="arrowForward" @click="create" v-if="!loading"></ion-icon>
             </div>
@@ -59,10 +63,11 @@ import {
     IonSelect,
     IonSelectOption,
     IonChip,
+    alertController,
     toastController,
     modalController
 } from '@ionic/vue';
-import { addOutline, arrowForward } from 'ionicons/icons';
+import { addOutline, arrowForward, trashOutline } from 'ionicons/icons';
 import { ref } from 'vue';
 import { createClient } from "@libsql/client";
 import getCountryISO2 from 'country-iso-3-to-2';
@@ -268,6 +273,57 @@ const create = async ()=> {
         await toast.present();
     } 
 
+}
+
+const deleteOrder = async ()=> {
+    if(!props.order || !props.order['id']) return;
+    const orderId = props.order['id'];
+    const alert = await alertController.create({
+        header: 'Delete Order',
+        message: 'Are you sure you want to delete this order? This cannot be undone.',
+        buttons: [
+            {
+                text: 'Cancel',
+                role: 'cancel'
+            },
+            {
+                text: 'Delete',
+                handler: async () => {
+                    const dbUrl = import.meta.env.VITE_DB_URL;
+                    const dbToken = import.meta.env.VITE_DB_TOKEN;
+                    const turso = createClient({
+                        url: dbUrl,
+                        authToken: dbToken,
+                    });
+                    try {
+                        await turso.execute({
+                            sql: `UPDATE orders SET status='inactive' WHERE id='${orderId}'`
+                        });
+                        await modalController.dismiss({
+                            dismissed: true,
+                        });
+                        const toast = await toastController.create({
+                            message: 'Order deleted.',
+                            duration: 2000,
+                            position: 'bottom',
+                            color: "secondary"
+                        });
+                        await toast.present();
+                    } catch (e) {
+                        console.log(e);
+                        const toast = await toastController.create({
+                            message: 'Something went wrong.',
+                            duration: 3500,
+                            position: 'bottom',
+                            color: "danger"
+                        });
+                        await toast.present();
+                    }
+                }
+            }
+        ]
+    });
+    await alert.present();
 }
 
 const getYesterday = ()=> {

@@ -107,7 +107,7 @@ const editOrder = async (order: any)=> {
     modal.present();
 
     const { data } = await modal.onWillDismiss();
-    if(data.dismissed == true){
+    if(data && data.dismissed == true){
         loading.value = true;
         getOrders(new Date());
     }
