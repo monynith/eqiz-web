@@ -43,7 +43,8 @@
                 <div class="gen-all-actions">
                     <br/>
                     <span class="action-btn" @click="generate('questions')">GENERATE ALL QUESTIONS</span>
-                    <span class="action-btn" @click="generate('mockups')">GENERATE ALL MOCK UPS</span>                 
+                    <span class="action-btn" @click="generate('mockups')">GENERATE ALL MOCK UPS</span>
+                    <span class="action-btn" @click="generate('content')">GENERATE ALL CONTENT & NOTES</span>
                 </div>
             </div>
         </div>        

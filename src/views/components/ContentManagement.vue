@@ -2204,6 +2204,7 @@ const generateAllMenu = async ()=> {
     }
     if(data.type === 'questions') generateAllQuestions();
     else if(data.type === 'mockups') generateAllMockups();
+    else if(data.type === 'content') generateAllContent((data.certifications as any[]).map((c: any) => c.id));
 }
 
 const generateAllMockups = async ()=> {
@@ -2438,6 +2439,110 @@ const generateAllQuestions = async ()=> {
                             const alert = await alertController.create({
                                 header: 'Error: AI',
                                 message: `${(error && error.message) ? error.message : error}\n\n${savedCount} question(s) generated so far have been saved locally and will be restored automatically when you reopen this app.`,
+                                buttons: ['Ok']
+                            });
+                            await alert.present();
+                        } finally {
+                            try { await persistDraft(); } catch (e) { console.error('Failed to persist partial progress', e); }
+                        }
+
+                        if(previousCert != '') {
+                            const prev = contentData.value.certifications.find((c: any) => c.id === previousCert);
+                            if(prev) selectedCertification.value = prev;
+                        }
+                    }, 0);
+                }
+            }
+        }),
+        mode: 'md'
+    });
+
+    await actionSheet.present();
+}
+
+const generateAllContent = async (certIds?: string[])=> {
+    const certFilter = certIds ? new Set(certIds) : null;
+    const certs = certFilter
+        ? contentData.value.certifications.filter((c: any) => certFilter.has(c.id))
+        : contentData.value.certifications;
+    if(certs.length <= 0) {
+        const toast = await toastController.create({
+            message: certFilter ? 'Select at least one certification.' : 'Add a certification first.',
+            duration: 2500,
+            position: 'bottom',
+            color: "warning"
+        });
+        await toast.present();
+        return;
+    }
+
+    const actionSheet = await actionSheetController.create({
+        header: 'Pick Model',
+        buttons: AI_MODELS.map((v) => {
+            return {
+                text: v,
+                handler: ()=> {
+                    setTimeout(async ()=> {
+                        let cancelled = false;
+                        let dismissed = false;
+                        const dismiss = async ()=> {
+                            if(dismissed) return;
+                            dismissed = true;
+                            try { await loading.dismiss(); } catch (e) { /* ignore */ }
+                        };
+
+                        const loading = await loadingController.create({
+                            message: 'Preparing generation...',
+                            buttons: [{
+                                text: 'Cancel',
+                                handler: ()=> {
+                                    cancelled = true;
+                                    return false;
+                                }
+                            }]
+                        } as any);
+                        await loading.present();
+
+                        const previousCert = selectedCertification.value.id;
+                        const certCount = certs.length;
+                        let certIndex = 0;
+
+                        loading.message = `Generating content for ${certCount} certification${certCount > 1 ? 's' : ''}...`;
+
+                        try {
+                            for (const cert of certs as any[]) {
+                                certIndex++;
+                                selectedCertification.value = cert;
+                                if(cancelled) break;
+
+                                for (const t of ['glossary', 'cheatsheet', 'examtip']) {
+                                    if(cancelled) break;
+                                    loading.message = `${cert.name} (${certIndex}/${certCount}) — ${t}...`;
+                                    await callAI(t, v);
+                                }
+
+                                const domains = ((contentData.value.domains as any)[cert.id] || []) as any[];
+                                for (let dIdx = 0; dIdx < domains.length; dIdx++) {
+                                    if(cancelled) break;
+                                    const domain = domains[dIdx];
+                                    loading.message = `${cert.name} (${certIndex}/${certCount}) — note ${domain['id']} (${dIdx + 1}/${domains.length})...`;
+                                    await callAI('note', v, domain);
+                                }
+                            }
+                            await dismiss();
+                            const toast = await toastController.create({
+                                message: cancelled ? 'Generation cancelled.' : 'Finished generating all content and notes.',
+                                duration: 2500,
+                                position: 'bottom',
+                                color: cancelled ? 'warning' : 'secondary'
+                            });
+                            await toast.present();
+                        } catch (error: any) {
+                            console.log(error);
+                            await dismiss();
+                            const alert = await alertController.create({
+                                header: 'Error: AI',
+                                message: `${(error && error.message) ? error.message : error}\n\nProgress so far has been saved locally and will be restored automatically when you reopen this app.`,
                                 buttons: ['Ok']
                             });
                             await alert.present();
