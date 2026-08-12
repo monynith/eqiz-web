@@ -1,6 +1,6 @@
 <template>
     <div class="block">
-        <div id="container">
+        <div id="container" @touchmove.stop>
             <div id="toolbar">
                 <span id="title">Generate All</span>
                 <div id="actions">
@@ -43,8 +43,7 @@
                 <div class="gen-all-actions">
                     <br/>
                     <span class="action-btn" @click="generate('questions')">GENERATE ALL QUESTIONS</span>
-                    <span class="action-btn" @click="generate('mockups')">GENERATE ALL MOCK UPS</span>
-                    <br/>                    
+                    <span class="action-btn" @click="generate('mockups')">GENERATE ALL MOCK UPS</span>                 
                 </div>
             </div>
         </div>        
@@ -136,6 +135,7 @@ const generate = async (type: string) => {
     flex-direction: column;
     background: var(--eq-surface, #fff);
     color: var(--eq-text, #000);
+    max-height: 95vh;
 }
 #toolbar {
     flex-shrink: 0;
