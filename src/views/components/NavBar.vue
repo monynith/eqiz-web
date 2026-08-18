@@ -20,6 +20,10 @@
         <ion-icon :icon="readerOutline"></ion-icon> 
         <span>Contents</span>
     </div> 
+    <div class="menu" :class="{'active' : action == 'notes'}" @click="navi('notes')">
+        <ion-icon :icon="documentTextOutline"></ion-icon> 
+        <span>Notes</span>
+    </div> 
     <div class="menu" :class="{'active' : action == 'reports'}" @click="navi('reports')">
         <ion-icon :icon="flagOutline"></ion-icon> 
         <span>Reports</span>
@@ -37,7 +41,7 @@
 
 <script setup lang="ts">
 import { IonIcon, useIonRouter } from '@ionic/vue';
-import { albumsOutline, analyticsOutline, chevronBackOutline, chevronForwardOutline, flagOutline, layersOutline, readerOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
+import { albumsOutline, analyticsOutline, chevronBackOutline, chevronForwardOutline, documentTextOutline, flagOutline, layersOutline, readerOutline, moonOutline, sunnyOutline } from 'ionicons/icons';
 import { isDark, toggleDark } from '../../theme/theme';
 import { ref } from 'vue';
 

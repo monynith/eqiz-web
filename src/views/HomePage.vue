@@ -9,6 +9,7 @@
             <App v-if="action == 'apps'" /> 
             <Order v-if="action == 'orders'" /> 
             <ContentManagement v-if="action == 'contents'" /> 
+            <Notes v-if="action == 'notes'" /> 
         </MainContent>
       </div>
     </ion-content>
@@ -26,6 +27,7 @@ import App from './components/App.vue';
 import Order from './components/Order.vue';
 import NavBarPhone from './components/NavBarPhone.vue';
 import ContentManagement from './components/ContentManagement.vue';
+import Notes from './components/Notes.vue';
 
 const route = useRoute();
 const action = ref((route.path.slice(1) || 'home'));
@@ -39,6 +41,7 @@ const title: Record<string, string> = {
   'orders': "Orders",
   'apps': "App Lists",
   'contents': "Content Management",
+  'notes': "Notes",
   'reports': "Reports"
 }
 </script>

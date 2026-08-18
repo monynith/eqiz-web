@@ -42,6 +42,11 @@ const menu = async ()=> {
                 movePage("contents")
             }
         }, {
+            text: 'Notes',
+            handler: ()=> {
+                movePage("notes")
+            }
+        }, {
             text: 'Reports',
             handler: ()=> {
                 // movePage("orders")

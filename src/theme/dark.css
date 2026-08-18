@@ -192,6 +192,50 @@
   color: #fff !important;
 }
 
+/* ---------- Notes (Notes.vue) ---------- */
+.ion-palette-dark .note-item,
+.ion-palette-dark #note-name-input,
+.ion-palette-dark #note-content-input {
+  background: var(--eq-surface) !important;
+  border-color: var(--eq-border) !important;
+  color: var(--eq-text) !important;
+}
+
+.ion-palette-dark .note-name,
+.ion-palette-dark #note-name-input {
+  color: var(--eq-text) !important;
+}
+
+.ion-palette-dark .note-preview,
+.ion-palette-dark .note-date,
+.ion-palette-dark #notes-empty,
+.ion-palette-dark #note-back {
+  color: var(--eq-text-dim) !important;
+}
+
+.ion-palette-dark #notes-create-btn,
+.ion-palette-dark #note-save-btn {
+  color: var(--eq-pink) !important;
+}
+
+.ion-palette-dark #note-save-btn {
+  background: rgba(240, 168, 184, 0.18) !important;
+}
+
+.ion-palette-dark #note-delete-btn {
+  color: var(--eq-pink) !important;
+  border-color: rgba(240, 168, 184, 0.4) !important;
+}
+
+.ion-palette-dark .note-actions ion-icon {
+  color: var(--eq-pink) !important;
+}
+
+.ion-palette-dark #note-name-input:focus,
+.ion-palette-dark #note-content-input:focus {
+  border-color: rgba(240, 168, 184, 0.5) !important;
+}
+
 /* ---------- Muted text helpers ---------- */
 .ion-palette-dark .key,
 .ion-palette-dark .my-custom-label,

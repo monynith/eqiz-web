@@ -341,5 +341,13 @@ onMounted(async () => {
     padding: 15px;
     background: #0d1117;
     color: #e6edf3;
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
+}
+.markdown-body * {
+    -webkit-touch-callout: default;
+    -webkit-user-select: text;
+    user-select: text;
 }
 </style>
