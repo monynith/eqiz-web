@@ -401,7 +401,7 @@ const setAppId = async ()=> {
       }, {
         text: 'Set',
         handler: (data)=> {            
-            contentData.value.appId = data.appId;
+            contentData.value.appId = (data.appId || '').toLowerCase();
             contentData.value.appName = data.name;
         }
       }],
@@ -1208,7 +1208,6 @@ const getNotes = (certId: string)=> {
 const downloadQuestions = async ()=> {
     const zip = new JSZip();
     contentData.value.certifications.forEach((v: any) => {
-        const folder = zip.folder(v.id); 
         let question: any = [];
         if(!(contentData.value.domains as any)[v.id]) (contentData.value.domains as any)[v.id] = [];
         (contentData.value.domains as any)[v.id].forEach((domain: any) => {   
@@ -1217,7 +1216,7 @@ const downloadQuestions = async ()=> {
         });
         const mockupQs = (contentData.value.mockupQuestion as any)[v.id];
         if(mockupQs && mockupQs.length > 0) question = question.concat(mockupQs['data'] || mockupQs);
-        folder?.file(`${v.id}.json`, JSON.stringify({
+        zip.file(`${v.id}.json`, JSON.stringify({
             data: question.map((v: any)=> {
                 return {
                     ...v,
@@ -1251,11 +1250,10 @@ const downloadQuestions = async ()=> {
 const downloadMockupQuestions = async ()=> {
     const zip = new JSZip();
     contentData.value.certifications.forEach((v: any) => {
-        const folder = zip.folder(v.id); 
         let question: any = [];
         const mockupQs = (contentData.value.mockupQuestion as any)[v.id];
         if(mockupQs && mockupQs.length > 0) question = question.concat(mockupQs['data'] || mockupQs);
-        folder?.file(`${v.id}-mockup.json`, JSON.stringify({
+        zip.file(`${v.id}-mockup.json`, JSON.stringify({
             data: question.map((v: any)=> {
                 return {
                     ...v,
@@ -1543,6 +1541,7 @@ const loadContent = async ()=> {
       }, {
         text: 'Load',
         handler: async (data)=> {   
+            data.appID = (data.appID || '').toLowerCase();
             setTimeout(()=> {
                 loadFromDB(data);       
             }, 200);                         
