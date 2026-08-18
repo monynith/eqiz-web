@@ -32,6 +32,7 @@
                 <p id="note-back" @click="selectedNote = null"><ion-icon :icon="arrowBackOutline"></ion-icon> Notes</p>
                 <div id="note-editor-actions">
                     <p class="note-btn" id="note-delete-btn" @click="deleteNote(selectedNote)"><ion-icon :icon="trashOutline"></ion-icon> Delete</p>
+                    <p class="note-btn" id="note-copy-btn" @click="copyNote"><ion-icon :icon="copyOutline"></ion-icon> Copy</p>
                     <p class="note-btn" id="note-save-btn" @click="saveNote"><ion-icon :icon="saveOutline"></ion-icon> Save</p>
                 </div>
             </div>
@@ -53,7 +54,7 @@
 
 <script setup lang="ts">
 import { IonIcon, IonSearchbar, alertController, toastController } from '@ionic/vue';
-import { add, arrowBackOutline, saveOutline, trashOutline } from 'ionicons/icons';
+import { add, arrowBackOutline, copyOutline, saveOutline, trashOutline } from 'ionicons/icons';
 import { createClient } from '@libsql/client';
 import { computed, ref, onMounted } from 'vue';
 import Skeleton from './Skeleton.vue';
@@ -158,6 +159,43 @@ const createNote = async () => {
 
 const openNote = (note: any) => {
     selectedNote.value = { ...note };
+};
+
+const copyNote = async () => {
+    if (!selectedNote.value) return;
+    const note = selectedNote.value;
+    const name = (note['name'] || '').trim();
+    const content = (note['content'] || '').trim();
+    const text = name ? `${name}\n\n${content}` : content;
+    if (!text) {
+        const toast = await toastController.create({
+            message: 'Nothing to copy.',
+            duration: 2000,
+            position: 'bottom',
+            color: "danger"
+        });
+        await toast.present();
+        return;
+    }
+    try {
+        await navigator.clipboard.writeText(text);
+        const toast = await toastController.create({
+            message: 'Note copied to clipboard.',
+            duration: 2000,
+            position: 'bottom',
+            color: "secondary"
+        });
+        await toast.present();
+    } catch (e) {
+        console.error('Failed to copy note', e);
+        const toast = await toastController.create({
+            message: 'Something went wrong while copying the note.',
+            duration: 3000,
+            position: 'bottom',
+            color: "danger"
+        });
+        await toast.present();
+    }
 };
 
 const saveNote = async () => {
@@ -430,6 +468,11 @@ onMounted(() => {
 #note-delete-btn {
     color: #b05f7a;
     border: 1px solid #f0d0da;
+}
+
+#note-copy-btn {
+    color: #585858;
+    border: 1px solid #e3e3e3;
 }
 
 #note-save-btn {
