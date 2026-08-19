@@ -164,9 +164,8 @@ const openNote = (note: any) => {
 const copyNote = async () => {
     if (!selectedNote.value) return;
     const note = selectedNote.value;
-    const name = (note['name'] || '').trim();
     const content = (note['content'] || '').trim();
-    const text = name ? `${name}\n\n${content}` : content;
+    const text = content;
     if (!text) {
         const toast = await toastController.create({
             message: 'Nothing to copy.',
